@@ -20,7 +20,7 @@ void LedManager::setColor(uint8_t r, uint8_t g, uint8_t b) {
 
 void LedManager::setWifiConnecting() {
     // Yellow for connecting
-    setColor(255, 128, 0);
+    setColor(255, 255, 0);
 }
 
 void LedManager::setWifiConnected() {
