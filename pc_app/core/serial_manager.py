@@ -8,6 +8,7 @@ class SerialManager:
     def __init__(self):
         self.port = None
         self.udp_sock = None
+        self.esp_ip = None
         self.byte_buffer = bytearray()
         self.is_udp = False
 
@@ -19,10 +20,11 @@ class SerialManager:
         self.disconnect()
         if port_name.startswith("UDP"):
             self.is_udp = True
+            self.esp_ip = None
             self.udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            self.udp_sock.bind(('0.0.0.0', 4242)) # Listen for any ESP32 replying, but we broadcast to 4242
+            self.udp_sock.bind(('0.0.0.0', 4242)) # Listen for any ESP32 replying
             self.udp_sock.settimeout(0.01)
             
             # Send START_STREAM broadcast
@@ -37,11 +39,15 @@ class SerialManager:
         if self.is_udp:
             if self.udp_sock:
                 try:
-                    self.udp_sock.sendto(b"STOP_STREAM", ('<broadcast>', 4242))
+                    if self.esp_ip:
+                        self.udp_sock.sendto(b"STOP_STREAM", (self.esp_ip, 4242))
+                    else:
+                        self.udp_sock.sendto(b"STOP_STREAM", ('<broadcast>', 4242))
                     self.udp_sock.close()
                 except:
                     pass
                 self.udp_sock = None
+                self.esp_ip = None
         else:
             if self.port and self.port.is_open:
                 self.port.close()
@@ -55,7 +61,11 @@ class SerialManager:
 
     def _write_data(self, data):
         if self.is_udp and self.udp_sock:
-            self.udp_sock.sendto(data, ('<broadcast>', 4242))
+            # Target the specific ESP32 IP if known to prevent Windows broadcast stalls
+            if self.esp_ip:
+                self.udp_sock.sendto(data, (self.esp_ip, 4242))
+            else:
+                self.udp_sock.sendto(data, ('<broadcast>', 4242))
             return True
         elif not self.is_udp and self.is_connected():
             self.port.write(data)
@@ -84,6 +94,9 @@ class SerialManager:
             try:
                 while True:
                     data, addr = self.udp_sock.recvfrom(2048)
+                    
+                    if not self.esp_ip and addr:
+                        self.esp_ip = addr[0]
                     
                     if len(data) >= 2 and data[0] == 0xAA and data[1] == 0xBB:
                         if len(data) >= 23:

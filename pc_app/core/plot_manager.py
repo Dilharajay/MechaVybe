@@ -1,9 +1,11 @@
+import collections
+
 class PlotManager:
     def __init__(self, max_points=500):
         self.max_points = max_points
-        self.timestamps = []
-        self.accel_data = {'x': [], 'y': [], 'z': []}
-        self.gyro_data = {'x': [], 'y': [], 'z': []}
+        self.timestamps = collections.deque(maxlen=max_points)
+        self.accel_data = {'x': collections.deque(maxlen=max_points), 'y': collections.deque(maxlen=max_points), 'z': collections.deque(maxlen=max_points)}
+        self.gyro_data = {'x': collections.deque(maxlen=max_points), 'y': collections.deque(maxlen=max_points), 'z': collections.deque(maxlen=max_points)}
 
     def clear(self):
         self.timestamps.clear()
@@ -18,16 +20,13 @@ class PlotManager:
         self.gyro_data['x'].append(gx)
         self.gyro_data['y'].append(gy)
         self.gyro_data['z'].append(gz)
-        
-        if len(self.timestamps) > self.max_points:
-            self.timestamps.pop(0)
-            for k in self.accel_data: self.accel_data[k].pop(0)
-            for k in self.gyro_data: self.gyro_data[k].pop(0)
 
     def update_curves(self, curves, filter_mgr=None, fs=1000.0):
         if len(self.timestamps) > 0:
+            # Convert deques to numpy arrays for plotting
+            import numpy as np
+            ts_arr = np.array(self.timestamps)
             if filter_mgr and filter_mgr.enabled:
-                import numpy as np
                 ax = filter_mgr.apply(np.array(self.accel_data['x']), fs)
                 ay = filter_mgr.apply(np.array(self.accel_data['y']), fs)
                 az = filter_mgr.apply(np.array(self.accel_data['z']), fs)
@@ -35,16 +34,16 @@ class PlotManager:
                 gy = filter_mgr.apply(np.array(self.gyro_data['y']), fs)
                 gz = filter_mgr.apply(np.array(self.gyro_data['z']), fs)
             else:
-                ax = self.accel_data['x']
-                ay = self.accel_data['y']
-                az = self.accel_data['z']
-                gx = self.gyro_data['x']
-                gy = self.gyro_data['y']
-                gz = self.gyro_data['z']
+                ax = np.array(self.accel_data['x'])
+                ay = np.array(self.accel_data['y'])
+                az = np.array(self.accel_data['z'])
+                gx = np.array(self.gyro_data['x'])
+                gy = np.array(self.gyro_data['y'])
+                gz = np.array(self.gyro_data['z'])
 
-            curves['ax'].setData(self.timestamps, ax)
-            curves['ay'].setData(self.timestamps, ay)
-            curves['az'].setData(self.timestamps, az)
-            curves['gx'].setData(self.timestamps, gx)
-            curves['gy'].setData(self.timestamps, gy)
-            curves['gz'].setData(self.timestamps, gz)
+            curves['ax'].setData(ts_arr, ax)
+            curves['ay'].setData(ts_arr, ay)
+            curves['az'].setData(ts_arr, az)
+            curves['gx'].setData(ts_arr, gx)
+            curves['gy'].setData(ts_arr, gy)
+            curves['gz'].setData(ts_arr, gz)
