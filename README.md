@@ -9,6 +9,8 @@
 MechaVybe is an end-to-end machine vibration sensing and anomaly detection system built around the ESP32-S3 microcontroller, the MPU6050 MEMS accelerometer/gyroscope, a PyQt6 desktop application, and a TensorFlow Lite autoencoder ML model. 
 It is designed for industrial engineers, maintenance technicians, and researchers focused on predictive maintenance and condition monitoring of rotating machinery. The system addresses the need for a low-cost, scalable, and fully integrated solution to monitor machine health, detect anomalies in real-time on edge devices, and build customized ML models from locally acquired vibration data.
 
+> 📚 **Deep Dive:** For a comprehensive look at the software capabilities, hardware features, and detailed industrial use cases (like bearing faults, resonance, and QA testing), please read the [Features, Use Cases, and Philosophy (FEATURES_AND_USECASES.md)](FEATURES_AND_USECASES.md) document.
+
 ### System Architecture
 
 ```mermaid
