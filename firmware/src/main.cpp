@@ -109,6 +109,11 @@ void processSerial() {
         cmd.trim();
         last_pc_msg = millis(); // Track that PC is actively communicating
 
+        if (predictionMode && !cmd.startsWith("MODE:") && cmd != "PING") {
+            Serial.println("WARNING: Device is in Prediction Mode. Exit prediction mode first.");
+            return;
+        }
+
         if (cmd.startsWith("WIFI:")) {
             int firstColon = cmd.indexOf(':');
             int secondColon = cmd.indexOf(':', firstColon + 1);
@@ -124,6 +129,11 @@ void processSerial() {
             int mode = cmd.substring(5).toInt();
             predictionMode = (mode == 1);
             Logger::info("Mode set to %d", mode);
+            if (!predictionMode) {
+                if (millis() - last_pc_msg < 3000) statusLed.setPcConnected();
+                else if (WiFi.status() == WL_CONNECTED) statusLed.setWifiConnected();
+                else statusLed.setWifiConnecting();
+            }
         } else if (cmd.startsWith("SET:RATE:")) {
             int rate = cmd.substring(9).toInt();
             nvs.setSampleRate(rate);
@@ -583,7 +593,14 @@ void loop()
             buttonPressed = false;
             
             if (!predictionMode) {
-                statusLed.setDataCollection();
+                // Restore LED to Data Collection mode
+                if (millis() - last_pc_msg < 3000) {
+                    statusLed.setPcConnected();
+                } else if (WiFi.status() == WL_CONNECTED) {
+                    statusLed.setWifiConnected();
+                } else {
+                    statusLed.setWifiConnecting();
+                }
             }
         }
     } else {
@@ -620,10 +637,16 @@ void loop()
                 buf[len] = 0;
                 String msg = String(buf);
                 if (msg.startsWith("START_STREAM")) {
-                    udpClientIp = udpServer.remoteIP();
-                    udpClientPort = udpServer.remotePort();
-                    udpStarted = true;
-                    Logger::info("UDP Stream started to %s:%d", udpClientIp.toString().c_str(), udpClientPort);
+                    if (predictionMode) {
+                        udpServer.beginPacket(udpServer.remoteIP(), udpServer.remotePort());
+                        udpServer.print("WARNING: Device is in Prediction Mode.\n");
+                        udpServer.endPacket();
+                    } else {
+                        udpClientIp = udpServer.remoteIP();
+                        udpClientPort = udpServer.remotePort();
+                        udpStarted = true;
+                        Logger::info("UDP Stream started to %s:%d", udpClientIp.toString().c_str(), udpClientPort);
+                    }
                 } else if (msg.startsWith("STOP_STREAM")) {
                     udpStarted = false;
                     Logger::info("UDP Stream stopped");
@@ -757,7 +780,8 @@ void loop()
                 mqttClient.publish(topic.c_str(), payload.c_str());
             }
 
-            Logger::info("Prediction: %.4f, Class: %d", prediction, predicted_class);
+            // Print directly instead of using Logger::info so the PC app doesn't try to parse it as JSON
+            Serial.printf("PREDICTION: %.4f, CLASS: %d\n", prediction, predicted_class);
         }
     }
 }

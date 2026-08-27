@@ -840,7 +840,11 @@ class ImuApp(QMainWindow):
                     traceback.print_exc()
             elif evt_type == "TEXT":
                 line = evt_data
-                if line.startswith("INFO:"):
+                if line.startswith("WARNING:"):
+                    QMessageBox.warning(self, "Device Warning", line)
+                    if self.logger.is_recording:
+                        self.stop_recording_sequence()
+                elif line.startswith("INFO:"):
                     try:
                         data = json.loads(line[5:])
                         formatted = json.dumps(data, indent=4)
