@@ -102,15 +102,70 @@ uint32_t last_pc_msg = 0;
 bool predictionMode = false; // 0 = Logger, 1 = Prediction
 bool buttonPressed = false;
 uint32_t buttonPressTime = 0;
+bool cli_logs_enabled = false;
+float last_prediction_score = 0.0;
+int last_predicted_class = 0;
 
 void processSerial() {
     if (Serial.available()) {
         String cmd = Serial.readStringUntil('\n');
         cmd.trim();
         last_pc_msg = millis(); // Track that PC is actively communicating
+        
+        // Convert to uppercase for CLI commands, but keep original for exact matching on others
+        String cmdUpper = cmd;
+        cmdUpper.toUpperCase();
+
+        if (cmdUpper == "HELP") {
+            Serial.println("=== MECHAVYBE CLI ===");
+            Serial.println("STATUS       : Show device and prediction status");
+            Serial.println("MODE 0       : Switch to Data Collection Mode");
+            Serial.println("MODE 1       : Switch to Inference Mode");
+            Serial.println("LOG ON       : Stream predictions to Serial");
+            Serial.println("LOG OFF      : Stop streaming predictions");
+            Serial.println("WIFI <S> <P> : Set Wi-Fi credentials");
+            Serial.println("MQTT <S> <P> <T> : Set MQTT config");
+            return;
+        } else if (cmdUpper == "STATUS") {
+            Serial.println("=== STATUS ===");
+            Serial.printf("Mode         : %s\n", predictionMode ? "INFERENCE" : "DATA COLLECTION");
+            Serial.printf("Wi-Fi        : %s (SSID: %s)\n", WiFi.status() == WL_CONNECTED ? "CONNECTED" : "DISCONNECTED", nvs.getWifiSsid().c_str());
+            Serial.printf("MQTT         : %s (%s:%d)\n", mqttClient.connected() ? "CONNECTED" : "DISCONNECTED", nvs.getMqttServer().c_str(), nvs.getMqttPort());
+            if (predictionMode) {
+                Serial.printf("Last Pred    : %.4f [%s]\n", last_prediction_score, last_predicted_class == 1 ? "ANOMALY" : "HEALTHY");
+            }
+            return;
+        } else if (cmdUpper == "LOG ON") {
+            cli_logs_enabled = true;
+            Serial.println("Prediction logging ENABLED.");
+            return;
+        } else if (cmdUpper == "LOG OFF") {
+            cli_logs_enabled = false;
+            Serial.println("Prediction logging DISABLED.");
+            return;
+        } else if (cmdUpper == "MODE 0") {
+            cmd = "MODE:0";
+        } else if (cmdUpper == "MODE 1") {
+            cmd = "MODE:1";
+        } else if (cmdUpper.startsWith("WIFI ")) {
+            // WIFI <ssid> <pwd> -> map to WIFI:<ssid>:<pwd>
+            int space1 = cmd.indexOf(' ');
+            int space2 = cmd.indexOf(' ', space1 + 1);
+            if (space1 > 0 && space2 > 0) {
+                cmd = "WIFI:" + cmd.substring(space1+1, space2) + ":" + cmd.substring(space2+1);
+            }
+        } else if (cmdUpper.startsWith("MQTT ")) {
+            // MQTT <server> <port> <topic> -> map to SET:MQTT:<server>,<port>,<topic>
+            int space1 = cmd.indexOf(' ');
+            int space2 = cmd.indexOf(' ', space1 + 1);
+            int space3 = cmd.indexOf(' ', space2 + 1);
+            if (space1 > 0 && space2 > 0 && space3 > 0) {
+                cmd = "SET:MQTT:" + cmd.substring(space1+1, space2) + "," + cmd.substring(space2+1, space3) + "," + cmd.substring(space3+1);
+            }
+        }
 
         if (predictionMode && !cmd.startsWith("MODE:") && cmd != "PING") {
-            Serial.println("WARNING: Device is in Prediction Mode. Exit prediction mode first.");
+            Serial.println("WARNING: Device is in Prediction Mode. Data collection is disabled.");
             return;
         }
 
@@ -780,8 +835,13 @@ void loop()
                 mqttClient.publish(topic.c_str(), payload.c_str());
             }
 
-            // Print directly instead of using Logger::info so the PC app doesn't try to parse it as JSON
-            Serial.printf("PREDICTION: %.4f, CLASS: %d\n", prediction, predicted_class);
+            last_prediction_score = prediction;
+            last_predicted_class = predicted_class;
+
+            if (cli_logs_enabled) {
+                // Print directly instead of using Logger::info so the PC app doesn't try to parse it as JSON
+                Serial.printf(">>> [DIAGNOSTIC] Score: %.4f | Status: %s\n", prediction, predicted_class == 1 ? "ANOMALY" : "HEALTHY");
+            }
         }
     }
 }
