@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QLabel, QLineEdit, QPushButton, QComboBox, QMessageBox,
                              QTabWidget, QFormLayout, QGroupBox, QTextEdit, QSpinBox,
-                             QDoubleSpinBox, QCheckBox, QScrollArea)
+                             QDoubleSpinBox, QCheckBox, QScrollArea, QSplitter)
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QTransform, QIcon, QPixmap
 import pyqtgraph as pg
@@ -71,8 +71,11 @@ class ImuApp(QMainWindow):
         
         # --- TAB 1: Dashboard (Plotting, Configuration & Data Logger) ---
         dash_widget = QWidget()
-        dash_layout = QHBoxLayout()  # Main layout is Side-by-Side
+        dash_layout = QVBoxLayout()
         dash_widget.setLayout(dash_layout)
+        
+        self.dash_splitter = QSplitter(Qt.Orientation.Horizontal)
+        dash_layout.addWidget(self.dash_splitter)
         
         # --- LEFT COLUMN: Controls & Config ---
         left_col_widget = QWidget()
@@ -241,8 +244,8 @@ class ImuApp(QMainWindow):
         
         left_col.addStretch()
         
-        # Add left column to dash layout wrapped in scroll area
-        dash_layout.addWidget(make_scrollable(left_col_widget), stretch=2)
+        # Add left column to dash splitter wrapped in scroll area
+        self.dash_splitter.addWidget(make_scrollable(left_col_widget))
         
         # --- RIGHT COLUMN: Plots ---
         right_col_widget = QWidget()
@@ -262,8 +265,10 @@ class ImuApp(QMainWindow):
             'gx': self.gyro_plot.plot(pen='r', name="Gyro X"), 'gy': self.gyro_plot.plot(pen='g', name="Gyro Y"), 'gz': self.gyro_plot.plot(pen='b', name="Gyro Z")
         }
         
-        # Add right column to dash layout
-        dash_layout.addWidget(right_col_widget, stretch=5)
+        # Add right column to dash splitter
+        self.dash_splitter.addWidget(right_col_widget)
+        self.dash_splitter.setStretchFactor(0, 2)
+        self.dash_splitter.setStretchFactor(1, 5)
         
         self.tabs.addTab(dash_widget, "Dashboard")
         
