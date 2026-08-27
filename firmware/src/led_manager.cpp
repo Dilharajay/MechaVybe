@@ -41,16 +41,26 @@ void LedManager::update() {
             break;
     }
 
-    if (ledOn) {
-        for(int i = 0; i < Config::WS2812_NUM_LEDS; i++) {
-            pixels.setPixelColor(i, pixels.Color(r_val, g_val, b_val));
+    static bool lastLedOn = !ledOn; // Force first update
+    static uint8_t lastR = 255, lastG = 255, lastB = 255;
+    
+    if (ledOn != lastLedOn || (ledOn && (r_val != lastR || g_val != lastG || b_val != lastB))) {
+        lastLedOn = ledOn;
+        lastR = r_val;
+        lastG = g_val;
+        lastB = b_val;
+
+        if (ledOn) {
+            for(int i = 0; i < Config::WS2812_NUM_LEDS; i++) {
+                pixels.setPixelColor(i, pixels.Color(r_val, g_val, b_val));
+            }
+        } else {
+            for(int i = 0; i < Config::WS2812_NUM_LEDS; i++) {
+                pixels.setPixelColor(i, 0);
+            }
         }
-    } else {
-        for(int i = 0; i < Config::WS2812_NUM_LEDS; i++) {
-            pixels.setPixelColor(i, 0);
-        }
+        pixels.show();
     }
-    pixels.show();
 }
 
 void LedManager::setColor(uint8_t r, uint8_t g, uint8_t b) {
