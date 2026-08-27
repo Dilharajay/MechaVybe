@@ -56,6 +56,13 @@ class ImuApp(QMainWindow):
         main_widget.setLayout(layout)
         self.setCentralWidget(main_widget)
         
+        def make_scrollable(widget):
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setWidget(widget)
+            scroll.setStyleSheet('QScrollArea { border: none; }')
+            return scroll
+
         # Main Tab Widget
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
@@ -142,7 +149,7 @@ class ImuApp(QMainWindow):
             'ax': self.accel_plot.plot(pen='r', name="Acc X"), 'ay': self.accel_plot.plot(pen='g', name="Acc Y"), 'az': self.accel_plot.plot(pen='b', name="Acc Z"),
             'gx': self.gyro_plot.plot(pen='r', name="Gyro X"), 'gy': self.gyro_plot.plot(pen='g', name="Gyro Y"), 'gz': self.gyro_plot.plot(pen='b', name="Gyro Z")
         }
-        self.tabs.addTab(dash_widget, "Dashboard")
+        self.tabs.addTab(make_scrollable(dash_widget), "Dashboard")
         
         # --- TAB 2: Device Configuration ---
         config_widget = QWidget()
@@ -248,7 +255,7 @@ class ImuApp(QMainWindow):
         self.meta_widgets = {}
         
         config_layout.addStretch()
-        self.tabs.addTab(config_widget, "Configuration")
+        self.tabs.addTab(make_scrollable(config_widget), "Configuration")
         
         # --- TAB 3: Diagnostics & Calibration ---
         diag_widget = QWidget()
@@ -304,7 +311,7 @@ class ImuApp(QMainWindow):
         self.info_display.setReadOnly(True)
         diag_layout.addWidget(self.info_display)
         
-        self.tabs.addTab(diag_widget, "Diagnostics & Calibration")
+        self.tabs.addTab(make_scrollable(diag_widget), "Diagnostics & Calibration")
         
         # --- TAB 4: Frequency Analysis (FFT) ---
         fft_widget = QWidget()
@@ -397,7 +404,7 @@ class ImuApp(QMainWindow):
         time_metrics_group.setLayout(time_metrics_layout)
         
         fft_layout.addWidget(time_metrics_group)
-        self.tabs.addTab(fft_widget, "Frequency Analysis (FFT)")
+        self.tabs.addTab(make_scrollable(fft_widget), "Frequency Analysis (FFT)")
         
         # --- TAB 5: Signal Processing (DSP) ---
         dsp_widget = QWidget()
@@ -465,7 +472,7 @@ class ImuApp(QMainWindow):
         dsp_layout.addWidget(aa_group)
         
         dsp_layout.addStretch()
-        self.tabs.addTab(dsp_widget, "Signal Processing (DSP)")
+        self.tabs.addTab(make_scrollable(dsp_widget), "Signal Processing (DSP)")
         
         # --- TAB 6: Spectrogram ---
         spec_widget = QWidget()
@@ -486,7 +493,7 @@ class ImuApp(QMainWindow):
         self.spec_plot.setLabel('left', 'Frequency', units='Hz')
         
         spec_layout.addWidget(self.spec_plot)
-        self.tabs.addTab(spec_widget, "Spectrogram")
+        self.tabs.addTab(make_scrollable(spec_widget), "Spectrogram")
         
         self.spec_history_size = 150
         self.spec_history = None
