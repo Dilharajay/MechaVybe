@@ -11,7 +11,7 @@ import tempfile
 import os
 
 class DataConfig(Config):
-    data_dir: str = "../pc_app/dataset/machine_001/healthy/"
+    data_dir: str = "../pc_app/dataset/"
     target_axis: str = 'az'
     fs: float = 1000.0
 
