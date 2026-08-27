@@ -2,13 +2,14 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QLineEdit, QPushButton, QComboBox, QMessageBox,
                              QTabWidget, QFormLayout, QGroupBox, QTextEdit, QSpinBox,
                              QDoubleSpinBox, QCheckBox, QScrollArea, QSplitter)
-from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QTransform, QIcon, QPixmap
 import pyqtgraph as pg
 import numpy as np
 import time
 import json
 import os
+import paho.mqtt.client as mqtt
 
 from core.serial_manager import SerialManager
 from core.data_logger import DataLogger
@@ -17,8 +18,16 @@ from core.fft_manager import FftManager
 from core.filter_manager import FilterManager
 
 class ImuApp(QMainWindow):
+    mqtt_msg_signal = pyqtSignal(str, float)
+    
     def __init__(self):
         super().__init__()
+        self.mqtt_client = None
+        self.mqtt_connected = False
+        self.anomaly_clear_timer = QTimer()
+        self.anomaly_clear_timer.setSingleShot(True)
+        self.anomaly_clear_timer.timeout.connect(self.clear_anomaly_status)
+        self.mqtt_msg_signal.connect(self.handle_mqtt_msg)
         self.setWindowTitle("MECHAVYBE - Data Acquisition System")
         icon_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
         self.setWindowIcon(QIcon(icon_path))
@@ -244,6 +253,23 @@ class ImuApp(QMainWindow):
         mqtt_form.addRow("", self.send_mqtt_btn)
         mqtt_group.setLayout(mqtt_form)
         left_col.addWidget(mqtt_group)
+        
+        # 4c. Live Prediction Status (MQTT)
+        pred_group = QGroupBox("Live Prediction Status")
+        pred_layout = QVBoxLayout()
+        self.btn_mqtt_connect = QPushButton("Connect to MQTT Broker")
+        self.btn_mqtt_connect.clicked.connect(self.toggle_mqtt_listener)
+        self.lbl_pred_status = QLabel("OFFLINE")
+        self.lbl_pred_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_pred_status.setStyleSheet("font-size: 24px; font-weight: bold; color: gray; padding: 10px; background-color: #e0e0e0; border: 2px solid gray; border-radius: 5px;")
+        self.lbl_pred_score = QLabel("Score: --")
+        self.lbl_pred_score.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        pred_layout.addWidget(self.btn_mqtt_connect)
+        pred_layout.addWidget(self.lbl_pred_status)
+        pred_layout.addWidget(self.lbl_pred_score)
+        pred_group.setLayout(pred_layout)
+        left_col.addWidget(pred_group)
         
         # 5. Recording Metadata
         meta_group = QGroupBox("Dataset & Recording Metadata")
@@ -945,12 +971,12 @@ class ImuApp(QMainWindow):
             self.spec_history = np.roll(self.spec_history, -1, axis=0)
             self.spec_history[-1, :] = yf
             
-            self.spec_img.setImage(self.spec_history, autoLevels=False)
-            
             # Auto-scale intensity for visibility
             max_val = np.max(self.spec_history)
-            if max_val > 0:
-                self.spec_img.setLevels([0, max_val])
+            if max_val <= 0:
+                max_val = 1.0
+                
+            self.spec_img.setImage(self.spec_history, autoLevels=False, levels=[0, max_val])
                 
             # Scale the image axes so Y matches Frequency
             self.spec_img.resetTransform()
@@ -978,3 +1004,65 @@ class ImuApp(QMainWindow):
         self.filter_mgr.detrend = self.dsp_detrend.isChecked()
         self.filter_mgr.notch_enabled = self.dsp_notch.isChecked()
         self.filter_mgr.notch_freq = float(self.dsp_notch_freq.currentText())
+
+    def toggle_mqtt_listener(self):
+        if self.mqtt_connected:
+            if self.mqtt_client:
+                self.mqtt_client.loop_stop()
+                self.mqtt_client.disconnect()
+            self.mqtt_connected = False
+            self.btn_mqtt_connect.setText("Connect to MQTT Broker")
+            self.lbl_pred_status.setText("OFFLINE")
+            self.lbl_pred_status.setStyleSheet("font-size: 24px; font-weight: bold; color: gray; padding: 10px; background-color: #e0e0e0; border: 2px solid gray; border-radius: 5px;")
+        else:
+            server = self.mqtt_server_input.text().strip()
+            port = self.mqtt_port_input.value()
+            topic = self.mqtt_topic_input.text().strip()
+            
+            # Use VERSION1 API to avoid breaking on either older or newer paho versions without explicit kwargs
+            try:
+                self.mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
+            except AttributeError:
+                self.mqtt_client = mqtt.Client() # Fallback for older paho-mqtt
+                
+            self.mqtt_client.on_connect = lambda client, userdata, flags, rc: self.on_mqtt_connect(client, topic, rc)
+            self.mqtt_client.on_message = self.on_mqtt_message
+            
+            try:
+                self.mqtt_client.connect(server, port, 60)
+                self.mqtt_client.loop_start()
+                self.mqtt_connected = True
+                self.btn_mqtt_connect.setText("Disconnect MQTT")
+                self.lbl_pred_status.setText("HEALTHY")
+                self.lbl_pred_status.setStyleSheet("font-size: 24px; font-weight: bold; color: green; padding: 10px; background-color: #e0ffe0; border: 2px solid green; border-radius: 5px;")
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+
+    def on_mqtt_connect(self, client, topic, rc):
+        if rc == 0:
+            client.subscribe(topic)
+            
+    def on_mqtt_message(self, client, userdata, msg):
+        try:
+            payload = msg.payload.decode('utf-8')
+            data = json.loads(payload)
+            status = data.get("status", "unknown").upper()
+            score = data.get("score", 0.0)
+            self.mqtt_msg_signal.emit(status, score)
+        except Exception:
+            pass
+
+    def handle_mqtt_msg(self, status, score):
+        if status == "ANOMALY":
+            self.lbl_pred_status.setText("ANOMALY DETECTED!")
+            self.lbl_pred_status.setStyleSheet("font-size: 24px; font-weight: bold; color: red; padding: 10px; background-color: #ffe0e0; border: 2px solid red; border-radius: 5px;")
+            self.lbl_pred_score.setText(f"Score: {score:.4f}")
+            # Reset to healthy after 12 seconds of no anomalies
+            self.anomaly_clear_timer.start(12000)
+
+    def clear_anomaly_status(self):
+        if self.mqtt_connected:
+            self.lbl_pred_status.setText("HEALTHY")
+            self.lbl_pred_status.setStyleSheet("font-size: 24px; font-weight: bold; color: green; padding: 10px; background-color: #e0ffe0; border: 2px solid green; border-radius: 5px;")
+            self.lbl_pred_score.setText("Score: < Threshold")

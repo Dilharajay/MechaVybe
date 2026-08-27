@@ -10,7 +10,9 @@ requires-python = ">=3.13"
 dependencies = [
     "paho-mqtt>=2.1.0",
     "pandas>=3.0.5",
+    "pillow>=12.3.0",
     "pyarrow>=25.0.1",
+    "pyinstaller>=6.22.2",
     "pyqt6>=6.11.0",
     "pyqtgraph>=0.14.0",
     "pyserial>=3.5",
