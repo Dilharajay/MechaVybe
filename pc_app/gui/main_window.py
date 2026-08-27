@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QLabel, QLineEdit, QPushButton, QComboBox, QMessageBox,
                              QTabWidget, QFormLayout, QGroupBox, QTextEdit, QSpinBox,
-                             QDoubleSpinBox, QCheckBox)
+                             QDoubleSpinBox, QCheckBox, QScrollArea)
 from PyQt6.QtCore import QTimer
 from PyQt6.QtGui import QTransform
 import pyqtgraph as pg
