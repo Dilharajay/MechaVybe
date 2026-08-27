@@ -841,7 +841,7 @@ void loop()
             if (mqtt_ok && predicted_class == 1) {
                 if (millis() - last_anomaly_pub > 10000) { // Max 1 alert per 10 seconds
                     last_anomaly_pub = millis();
-                    String payload = "{\"status\": \"anomaly\", \"score\": " + String(prediction) + "}";
+                    String payload = "{\"id\": \"" + nvs.getDeviceId() + "\", \"status\": \"anomaly\", \"score\": " + String(prediction) + "}";
                     String topic = nvs.getMqttTopic();
                     if (topic == "") topic = Config::MQTT_TOPIC;
                     mqttClient.publish(topic.c_str(), payload.c_str());

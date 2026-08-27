@@ -9,7 +9,7 @@ This guide explains how to connect your MechaVybe ESP32 vibration sensor to [Nod
 When the ESP32 detects an anomaly (Reconstruction Error > Threshold), it connects to the MQTT broker and publishes a JSON payload. It strictly rate-limits these alerts to a maximum of **1 per 10 seconds** to prevent broker spam.
 
 * **Default Topic:** `mechavybe/status`
-* **Payload Format:** `{"status": "anomaly", "score": 1.254}`
+* **Payload Format:** `{"id": "node-1", "status": "anomaly", "score": 1.254}`
 
 ```mermaid
 graph LR

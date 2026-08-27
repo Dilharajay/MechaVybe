@@ -18,7 +18,7 @@ from core.fft_manager import FftManager
 from core.filter_manager import FilterManager
 
 class ImuApp(QMainWindow):
-    mqtt_msg_signal = pyqtSignal(str, float)
+    mqtt_msg_signal = pyqtSignal(str, str, float)
     
     def __init__(self):
         super().__init__()
@@ -1049,13 +1049,14 @@ class ImuApp(QMainWindow):
             data = json.loads(payload)
             status = data.get("status", "unknown").upper()
             score = data.get("score", 0.0)
-            self.mqtt_msg_signal.emit(status, score)
+            dev_id = data.get("id", "Unknown Node")
+            self.mqtt_msg_signal.emit(dev_id, status, score)
         except Exception:
             pass
 
-    def handle_mqtt_msg(self, status, score):
+    def handle_mqtt_msg(self, dev_id, status, score):
         if status == "ANOMALY":
-            self.lbl_pred_status.setText("ANOMALY DETECTED!")
+            self.lbl_pred_status.setText(f"ANOMALY: {dev_id}")
             self.lbl_pred_status.setStyleSheet("font-size: 24px; font-weight: bold; color: red; padding: 10px; background-color: #ffe0e0; border: 2px solid red; border-radius: 5px;")
             self.lbl_pred_score.setText(f"Score: {score:.4f}")
             # Reset to healthy after 12 seconds of no anomalies
