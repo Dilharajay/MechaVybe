@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "paho-mqtt>=2.1.0",
     "pandas>=3.0.5",
     "pyarrow>=25.0.1",
     "pyqt6>=6.11.0",
@@ -18,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 pc-app = "pc_app:main"
+mechavybe-cli = "cli_monitor:main"
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13.0"]

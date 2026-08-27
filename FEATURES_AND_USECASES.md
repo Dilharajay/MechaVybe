@@ -99,6 +99,30 @@ The NeoPixel LED will visually indicate the state of the device:
 
 In Inference mode, the device automatically connects to the configured MQTT broker (default: `broker.hivemq.com`) and publishes its status as a JSON payload to `mechavybe/status`.
 
+### CLI Monitoring Tool
+To view live inference predictions from the edge device without opening the heavy GUI, you can use the built-in CLI Monitor tool. It connects directly to the MQTT broker and provides colored logs.
+
+**Installation (if not already installed):**
+```bash
+cd pc_app
+uv sync
+```
+
+**Usage:**
+```bash
+# Run with default settings (broker.hivemq.com, topic: mechavybe/status)
+uv run cli_monitor.py
+
+# Or use the installed script command:
+uv run mechavybe-cli
+
+# Customize broker and topic:
+uv run mechavybe-cli --server mybroker.local --port 1883 --topic mymachine/status
+
+# Log the output to a CSV file for long-term analysis:
+uv run mechavybe-cli --log predictions.csv
+```
+
 ### D. Structural Resonance Testing (Run-Up / Coast-Down)
 When a machine speeds up, it passes through various frequencies. If the running speed matches the natural frequency of the metal frame, catastrophic resonance occurs.
 * By using the **Spectrogram feature**, engineers can perform a coast-down test (cutting power and letting the motor spin to a stop). 

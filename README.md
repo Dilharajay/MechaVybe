@@ -257,6 +257,13 @@ The ESP32 firmware includes a physical button interface and LED diagnostics:
 
 *In Inference Mode, the status is published via MQTT to `broker.hivemq.com` under the topic `mechavybe/status`.*
 
+**Live MQTT CLI Monitor:**
+You can monitor the ESP32's predictions in real-time without the heavy GUI using the built-in CLI:
+```bash
+cd pc_app
+uv run mechavybe-cli --server broker.hivemq.com --topic mechavybe/status --log logs.csv
+```
+
 ## 7. Communication Protocol Reference
 
 ### Binary Packet Structure
