@@ -1026,6 +1026,7 @@ class ImuApp(QMainWindow):
                 self.mqtt_client = mqtt.Client() # Fallback for older paho-mqtt
                 
             self.mqtt_client.on_connect = lambda client, userdata, flags, rc: self.on_mqtt_connect(client, topic, rc)
+            self.mqtt_client.on_disconnect = self.on_mqtt_disconnect
             self.mqtt_client.on_message = self.on_mqtt_message
             
             try:
@@ -1038,6 +1039,14 @@ class ImuApp(QMainWindow):
             except Exception as e:
                 import traceback
                 traceback.print_exc()
+                QMessageBox.critical(self, "MQTT Connection Failed", f"Could not connect to broker at {server}:{port}.\n\nError: {str(e)}")
+
+    def on_mqtt_disconnect(self, client, userdata, rc):
+        self.mqtt_connected = False
+        # Use QTimer to safely update GUI from background thread
+        QTimer.singleShot(0, lambda: self.btn_mqtt_connect.setText("Connect to MQTT Broker"))
+        QTimer.singleShot(0, lambda: self.lbl_pred_status.setText("OFFLINE"))
+        QTimer.singleShot(0, lambda: self.lbl_pred_status.setStyleSheet("font-size: 24px; font-weight: bold; color: gray; padding: 10px; background-color: #e0e0e0; border: 2px solid gray; border-radius: 5px;"))
 
     def on_mqtt_connect(self, client, topic, rc):
         if rc == 0:
