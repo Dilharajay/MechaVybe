@@ -70,7 +70,7 @@ namespace Config {
     // ==========================================
     // MQTT Configuration
     // ==========================================
-    constexpr char MQTT_SERVER[]   = "";
+    constexpr char MQTT_SERVER[]   = "192.168.1.101";
     constexpr int  MQTT_PORT       = 1883;
-    constexpr char MQTT_TOPIC[]    = "";
+    constexpr char MQTT_TOPIC[]    = "mechavybe/status";
 }
