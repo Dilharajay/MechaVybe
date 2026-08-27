@@ -102,7 +102,7 @@ uint32_t last_pc_msg = 0;
 bool predictionMode = false; // 0 = Logger, 1 = Prediction
 bool buttonPressed = false;
 uint32_t buttonPressTime = 0;
-bool cli_logs_enabled = false;
+bool cli_logs_enabled = true; // Enabled by default for easy debugging
 float last_prediction_score = 0.0;
 int last_predicted_class = 0;
 String currentMqttServer;
