@@ -1,0 +1,4 @@
+# This file makes Dagster use the current directory as DAGSTER_HOME
+# This ensures run history is preserved in local sqlite files instead of a temp folder.
+telemetry:
+  enabled: false

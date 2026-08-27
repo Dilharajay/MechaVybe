@@ -470,7 +470,7 @@ flowchart TD
 cd modeling
 
 # Open the Dagster Orchestration UI
-uv run dagster dev
+.\run_dagster.ps1
 ```
 Visit `http://localhost:3000` to materialize the assets.
 
@@ -581,8 +581,8 @@ print(f"Fault detection rate: {detection_rate:.1f}%")
 ## Quick Reference
  
 ```powershell
-# Run orchestration UI
-uv run dagster dev
+# Run orchestration UI (preserves history)
+.\run_dagster.ps1
  
 # Run tracking UI (in separate terminal)
 uv run mlflow ui --backend-store-uri sqlite:///mlruns.db
