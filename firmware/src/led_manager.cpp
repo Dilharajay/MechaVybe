@@ -6,12 +6,15 @@ LedManager::LedManager()
 }
 
 void LedManager::begin() {
+    if (!Config::ENABLE_STATUS_LED) return;
     pixels.begin();
     pixels.setBrightness(Config::LED_BRIGHTNESS);
     turnOff();
 }
 
 void LedManager::update() {
+    if (!Config::ENABLE_STATUS_LED) return;
+
     uint32_t now = millis();
     bool ledOn = false;
 
@@ -56,14 +59,14 @@ void LedManager::setColor(uint8_t r, uint8_t g, uint8_t b) {
     update();
 }
 
-// 🟨 Yellow: Connecting to Wi-Fi -> SLOW_PULSE
+// 🟨 Yellow: Connecting to Wi-Fi
 void LedManager::setWifiConnecting() {
-    r_val = 255; g_val = 0; b_val = 0; // Forced RED
-    currentPattern = LedPattern::SLOW_PULSE;
+    r_val = 255; g_val = 255; b_val = 0; 
+    currentPattern = LedPattern::SOLID;
 }
 
 void LedManager::setWifiConnected() {
-    r_val = 255; g_val = 0; b_val = 0; 
+    r_val = 0; g_val = 255; b_val = 0; 
     currentPattern = LedPattern::SOLID;
 }
 
@@ -72,43 +75,44 @@ void LedManager::setWifiError() {
     currentPattern = LedPattern::FAST_FLASH;
 }
 
-// 🟧 Orange (Flashing): MQTT Offline -> FAST_FLASH
+// 🟧 Orange (Flashing): MQTT Offline
 void LedManager::setMqttError() {
-    r_val = 255; g_val = 0; b_val = 0; 
-    currentPattern = LedPattern::FAST_FLASH;
+    r_val = 255; g_val = 128; b_val = 0; 
+    currentPattern = LedPattern::SLOW_PULSE;
 }
 
-// 🟦 Blue: OTA Update in progress -> RAPID_STROBE
+// 🟦 Blue: OTA Update in progress
 void LedManager::setOtaUpdating() {
-    r_val = 255; g_val = 0; b_val = 0; 
+    r_val = 0; g_val = 0; b_val = 255; 
     currentPattern = LedPattern::RAPID_STROBE;
 }
 
 void LedManager::setPcConnected() {
-    r_val = 255; g_val = 0; b_val = 0; 
+    r_val = 0; g_val = 255; b_val = 255; 
     currentPattern = LedPattern::SOLID;
 }
 
-// 🟩 Green: Inference Mode (Healthy) -> DOUBLE_BLINK
+// 🟩 Green: Inference Mode (Healthy)
 void LedManager::setInferenceHealthy() {
-    r_val = 255; g_val = 0; b_val = 0; 
-    currentPattern = LedPattern::DOUBLE_BLINK;
+    r_val = 0; g_val = 255; b_val = 0; 
+    currentPattern = LedPattern::SOLID;
 }
 
-// 🟥 Red: Inference Mode (Anomaly) -> FAST_FLASH
+// 🟥 Red: Inference Mode (Anomaly)
 void LedManager::setInferenceAnomaly() {
     r_val = 255; g_val = 0; b_val = 0; 
-    currentPattern = LedPattern::FAST_FLASH;
-}
-
-// 🩵 Cyan: Data Collection Mode -> SOLID
-void LedManager::setDataCollection() {
-    r_val = 255; g_val = 0; b_val = 0; 
     currentPattern = LedPattern::SOLID;
 }
 
+// 🩵 Cyan: Data Collection Mode
+void LedManager::setDataCollection() {
+    r_val = 0; g_val = 255; b_val = 255; 
+    currentPattern = LedPattern::SOLID;
+}
+
+// 🟪 Magenta: Mode switching
 void LedManager::setModeSwitching() {
-    r_val = 255; g_val = 0; b_val = 0; 
+    r_val = 255; g_val = 0; b_val = 255; 
     currentPattern = LedPattern::SOLID;
 }
 

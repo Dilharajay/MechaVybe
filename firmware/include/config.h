@@ -44,6 +44,7 @@ namespace Config {
     // Built-in WS2812 RGB LED Configuration
     // ==========================================
     // On many ESP32-S3 boards (like DevKitC-1), the built-in RGB is on pin 48.
+    constexpr bool ENABLE_STATUS_LED = true;
     constexpr int WS2812_PIN       = 48;
     constexpr int WS2812_NUM_LEDS  = 1;
     constexpr int LED_BRIGHTNESS   = 1;
