@@ -20,10 +20,11 @@ void OtaManager::begin(const char* ssid, const char* password, const char* hostn
     WiFi.begin(ssid, password);
     Logger::info("Connecting to WiFi");
     
-    // Wait for connection, but don't block forever
+    // Wait for connection, but don't block forever without updating LED
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
-        delay(500);
+    while (WiFi.status() != WL_CONNECTED && attempts < 200) { // 200 * 50ms = 10s
+        if (led) led->update();
+        delay(50);
         attempts++;
     }
     
@@ -56,7 +57,8 @@ void OtaManager::begin(const char* ssid, const char* password, const char* hostn
         Logger::info("\nEnd");
     });
 
-    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    ArduinoOTA.onProgress([led](unsigned int progress, unsigned int total) {
+        if (led) led->update();
         Logger::info("Progress: %u%%\r", (progress / (total / 100)));
     });
 
