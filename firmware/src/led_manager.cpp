@@ -42,6 +42,22 @@ void LedManager::setPcConnected() {
     setColor(0, 255, 255); // Cyan
 }
 
+void LedManager::setInferenceHealthy() {
+    setColor(0, 255, 0); // Green
+}
+
+void LedManager::setInferenceAnomaly() {
+    setColor(255, 0, 0); // Red
+}
+
+void LedManager::setDataCollection() {
+    setColor(0, 255, 255); // Cyan
+}
+
+void LedManager::setModeSwitching() {
+    setColor(255, 0, 255); // Magenta
+}
+
 void LedManager::turnOff() {
     setColor(0, 0, 0);
 }

@@ -59,4 +59,16 @@ namespace Config {
     constexpr uint32_t INFERENCE_DELAY_MS = 2000;
     constexpr uint32_t ERROR_DELAY_MS     = 5000;
     constexpr uint32_t BOOT_DELAY_MS      = 2000;
+
+    // ==========================================
+    // Button Configuration
+    // ==========================================
+    constexpr int BUTTON_PIN = 0; // Standard BOOT button on ESP32-S3
+
+    // ==========================================
+    // MQTT Configuration
+    // ==========================================
+    constexpr char MQTT_SERVER[]   = "broker.hivemq.com";
+    constexpr int  MQTT_PORT       = 1883;
+    constexpr char MQTT_TOPIC[]    = "mechavybe/status";
 }

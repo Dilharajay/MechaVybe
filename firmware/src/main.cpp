@@ -49,6 +49,7 @@ void IRAM_ATTR rpm_isr() {
 
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <PubSubClient.h>
 
 namespace
 {
@@ -94,8 +95,13 @@ ImuManager imu;
 LedManager statusLed;
 NvsManager nvs;
 
+WiFiClient espClient;
+PubSubClient mqttClient(espClient);
+
 uint32_t last_pc_msg = 0;
 bool predictionMode = false; // 0 = Logger, 1 = Prediction
+bool buttonPressed = false;
+uint32_t buttonPressTime = 0;
 
 void processSerial() {
     if (Serial.available()) {
@@ -206,6 +212,9 @@ void setup() {
     if (Config::CURRENT_PIN >= 0) {
         pinMode(Config::CURRENT_PIN, INPUT);
     }
+
+    pinMode(Config::BUTTON_PIN, INPUT_PULLUP);
+    mqttClient.setServer(Config::MQTT_SERVER, Config::MQTT_PORT);
 
     // Initialize Status LED
     statusLed.begin();
@@ -540,16 +549,37 @@ float run_inference(
 
 void loop()
 {
+    // Handle BOOT button for mode switching
+    int btnState = digitalRead(Config::BUTTON_PIN);
+    if (btnState == LOW) { // Button is pressed (active low)
+        if (!buttonPressed) {
+            buttonPressed = true;
+            buttonPressTime = millis();
+        } else if (millis() - buttonPressTime > 1500) { // 1.5s long press
+            predictionMode = !predictionMode;
+            statusLed.setModeSwitching();
+            Logger::info("Mode switched via button to: %s", predictionMode ? "Inference" : "Data Collection");
+            delay(1000); // Wait 1s to show the magenta LED and debounce
+            buttonPressed = false;
+            
+            if (!predictionMode) {
+                statusLed.setDataCollection();
+            }
+        }
+    } else {
+        buttonPressed = false;
+    }
+
     // PC Connectivity tracking (needs heartbeat within 3 seconds)
     static bool lastPcConnected = false;
     bool pcConnected = (Serial && (millis() - last_pc_msg < 3000));
     
     if (pcConnected != lastPcConnected) {
         lastPcConnected = pcConnected;
-        if (pcConnected) {
+        if (pcConnected && !predictionMode) {
             statusLed.setPcConnected();
             Logger::info("PC Connected!");
-        } else {
+        } else if (!predictionMode) {
             statusLed.setWifiConnected(); // Fallback to Wi-Fi state
             Logger::info("PC Disconnected.");
         }
@@ -643,18 +673,32 @@ void loop()
             }
             tx_packet.crc = crc;
             
-            if (udpStarted && WiFi.status() == WL_CONNECTED) {
-                udpServer.beginPacket(udpClientIp, udpClientPort);
-                udpServer.write((uint8_t*)&tx_packet, sizeof(BinaryPacket));
-                udpServer.endPacket();
-            } else {
-                Serial.write((uint8_t*)&tx_packet, sizeof(BinaryPacket));
+            // Only stream raw data if we are NOT in prediction mode
+            if (!predictionMode) {
+                if (udpStarted && WiFi.status() == WL_CONNECTED) {
+                    udpServer.beginPacket(udpClientIp, udpClientPort);
+                    udpServer.write((uint8_t*)&tx_packet, sizeof(BinaryPacket));
+                    udpServer.endPacket();
+                } else {
+                    Serial.write((uint8_t*)&tx_packet, sizeof(BinaryPacket));
+                }
             }
             tx_packet.sample_count = 0;
         }
     }
 
     if (predictionMode) {
+        if (WiFi.status() == WL_CONNECTED) {
+            if (!mqttClient.connected()) {
+                if (mqttClient.connect(Config::OTA_HOSTNAME)) {
+                    Logger::info("MQTT Connected to %s", Config::MQTT_SERVER);
+                }
+            }
+            if (mqttClient.connected()) {
+                mqttClient.loop();
+            }
+        }
+
         if (interpreter == nullptr)
         {
             static uint32_t last_err_time = 0;
@@ -665,22 +709,33 @@ void loop()
             return;
         }
 
-        // Example trigger: run inference every 100ms
+        // Run inference every 500ms
         static uint32_t last_inference = 0;
-        if (millis() - last_inference > 100) {
+        if (millis() - last_inference > 500) {
             last_inference = millis();
             
-            // Dummy logic to feed IMU data to the model
+            // Note: In full deployment, this feeds the FFT of the batch to the model.
+            // Here we run a dummy feed from instantaneous IMU data.
             float x1 = imu.accelX;
             float x2 = imu.accelY;
             
             float prediction = run_inference(x1, x2);
             int predicted_class = prediction >= Config::PREDICTION_THRESHOLD ? 1 : 0;
+            
+            // Update LED Status
+            if (predicted_class == 1) {
+                statusLed.setInferenceAnomaly(); // Red
+            } else {
+                statusLed.setInferenceHealthy(); // Green
+            }
 
-            Logger::info("Input (Accel X, Y): %.2f, %.2f", x1, x2);
-            Logger::info("Prediction: %.4f", prediction);
-            Logger::info("Class: %d", predicted_class);
-            Logger::info("Free heap: %u\n", ESP.getFreeHeap());
+            // Publish via MQTT
+            if (mqttClient.connected()) {
+                String payload = "{\"status\": \"" + String(predicted_class == 1 ? "anomaly" : "healthy") + "\", \"score\": " + String(prediction) + "}";
+                mqttClient.publish(Config::MQTT_TOPIC, payload.c_str());
+            }
+
+            Logger::info("Prediction: %.4f, Class: %d", prediction, predicted_class);
         }
     }
 }

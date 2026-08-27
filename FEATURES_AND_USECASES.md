@@ -81,6 +81,24 @@ Instead of relying on human inspectors to "listen" to a newly manufactured motor
 3. Deploy the model to an ESP32 mounted at the end of the assembly line.
 4. If a newly built motor has a grinding bearing, the ESP32's on-device inference will yield a high Reconstruction Error and light up the NeoPixel LED red, automatically rejecting the part.
 
+## 6. Device Operation & Diagnostic Patterns
+
+The MECHAVYBE edge device (ESP32) features a built-in NeoPixel LED and BOOT button for standalone operation.
+
+### Button Controls
+* **Long Press BOOT Button (1.5 seconds):** Toggles the device between **Data Collection Mode** (streaming data to PC) and **Inference Mode** (running the TinyML model and publishing results via MQTT).
+
+### LED Diagnostic Patterns
+The NeoPixel LED will visually indicate the state of the device:
+* 🟨 **Yellow (Solid):** Booting up or connecting to Wi-Fi.
+* 🟦 **Blue (Solid):** OTA (Over-The-Air) Firmware Update in progress.
+* 🩵 **Cyan (Solid):** Data Collection Mode (PC connected, actively streaming raw data).
+* 🟪 **Magenta (Solid):** Mode switching (appears briefly when you long-press the BOOT button).
+* 🟩 **Green (Solid):** Inference Mode - Machine is **Healthy** (Prediction < Threshold).
+* 🟥 **Red (Solid):** Inference Mode - **Anomaly Detected** (Prediction >= Threshold).
+
+In Inference mode, the device automatically connects to the configured MQTT broker (default: `broker.hivemq.com`) and publishes its status as a JSON payload to `mechavybe/status`.
+
 ### D. Structural Resonance Testing (Run-Up / Coast-Down)
 When a machine speeds up, it passes through various frequencies. If the running speed matches the natural frequency of the metal frame, catastrophic resonance occurs.
 * By using the **Spectrogram feature**, engineers can perform a coast-down test (cutting power and letting the motor spin to a stop). 

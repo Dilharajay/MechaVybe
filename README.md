@@ -241,6 +241,22 @@ The system metrics map to standard condition monitoring guidelines:
 3. **Train:** Navigate to `modeling/` and run `uv run dagster dev` to execute the ML pipeline, while tracking metrics with `uv run mlflow ui`.
 4. **Deploy:** The pipeline automatically exports an INT8 TFLite C header. Move this header to `firmware/include/` and re-flash the ESP32 to enable on-device anomaly detection.
 
+## 6. Device Operation & LED Diagnostics
+
+The ESP32 firmware includes a physical button interface and LED diagnostics:
+
+* **Mode Switching:** Long-press the **BOOT Button (GPIO 0) for 1.5s** to toggle between **Data Collection Mode** (streaming to PC) and **Inference Mode** (running TinyML locally and publishing to MQTT).
+
+**LED Indicator Patterns:**
+* 🟨 **Yellow:** Booting up / Connecting to Wi-Fi.
+* 🟦 **Blue:** OTA Update in progress.
+* 🩵 **Cyan:** Data Collection Mode (Active).
+* 🟪 **Magenta:** Mode switching (appears during long-press).
+* 🟩 **Green:** Inference Mode (Healthy).
+* 🟥 **Red:** Inference Mode (Anomaly Detected).
+
+*In Inference Mode, the status is published via MQTT to `broker.hivemq.com` under the topic `mechavybe/status`.*
+
 ## 7. Communication Protocol Reference
 
 ### Binary Packet Structure

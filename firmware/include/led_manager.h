@@ -22,6 +22,10 @@ public:
     void setWifiError();
     void setOtaUpdating();
     void setPcConnected();
+    void setInferenceHealthy();
+    void setInferenceAnomaly();
+    void setDataCollection();
+    void setModeSwitching();
     void turnOff();
 
 private:
