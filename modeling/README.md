@@ -478,7 +478,7 @@ Visit `http://localhost:3000` to materialize the assets.
 ```powershell
 # In a new terminal
 cd modeling
-uv run mlflow ui
+uv run mlflow ui --backend-store-uri sqlite:///mlruns.db
 ```
 Visit `http://localhost:5000` to track parameters, reconstruction loss, and anomaly thresholds across different runs.
 
@@ -585,7 +585,7 @@ print(f"Fault detection rate: {detection_rate:.1f}%")
 uv run dagster dev
  
 # Run tracking UI (in separate terminal)
-uv run mlflow ui
+uv run mlflow ui --backend-store-uri sqlite:///mlruns.db
  
 # Deploy to firmware
 copy model\model.h ..\firmware\include\model.h
