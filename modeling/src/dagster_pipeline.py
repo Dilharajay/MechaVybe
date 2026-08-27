@@ -141,8 +141,8 @@ def exported_model(context: AssetExecutionContext, config: ExportConfig, trainin
 
 import subprocess
 
-@asset
-def deployed_firmware(context: AssetExecutionContext, exported_model: MaterializeResult) -> MaterializeResult:
+@asset(deps=["exported_model"])
+def deployed_firmware(context: AssetExecutionContext) -> MaterializeResult:
     import shutil
     
     # 1. Copy model.h to firmware
