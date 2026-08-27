@@ -1,0 +1,14 @@
+{
+    "name": "Sewing Machine",
+    "fields": [
+        {"id": "machine_id", "label": "Machine ID", "type": "text", "default": "SEWING_01"},
+        {"id": "condition", "label": "Condition", "type": "dropdown", "options": ["healthy", "needle_bent", "thread_tension", "bobbin_issue", "unknown"]},
+        {"id": "severity", "label": "Fault Severity", "type": "dropdown", "options": ["0 - Baseline (Healthy)", "1 - Early Degradation", "2 - Moderate Fault", "3 - Severe Fault", "4 - Critical Failure"], "default": "0 - Baseline (Healthy)"},
+        {"id": "session_id", "label": "Session ID (Leave blank to auto-generate)", "type": "text", "default": ""},
+        {"id": "speed", "label": "Speed", "type": "dropdown", "options": ["slow", "medium", "fast"], "default": "medium"},
+        {"id": "fabric", "label": "Fabric", "type": "text", "default": "cotton"},
+        {"id": "needle", "label": "Needle", "type": "text", "default": "standard"},
+        {"id": "thread", "label": "Thread", "type": "text", "default": "polyester"},
+        {"id": "load", "label": "Load", "type": "text", "default": "normal"}
+    ]
+}

@@ -1,0 +1,12 @@
+{
+    "name": "Standard Industrial",
+    "fields": [
+        {"id": "machine_id", "label": "Machine ID", "type": "text", "default": "machine_001"},
+        {"id": "condition", "label": "Condition", "type": "dropdown", "options": ["healthy", "imbalance", "misalignment", "bearing_fault", "operating_conditions", "unknown"]},
+        {"id": "severity", "label": "Fault Severity", "type": "dropdown", "options": ["0 - Baseline (Healthy)", "1 - Early Degradation", "2 - Moderate Fault", "3 - Severe Fault", "4 - Critical Failure"], "default": "0 - Baseline (Healthy)"},
+        {"id": "session_id", "label": "Session ID (Leave blank to auto-generate)", "type": "text", "default": ""},
+        {"id": "mounting_position", "label": "Mounting Position", "type": "text", "default": "motor_casing"},
+        {"id": "mounting_method", "label": "Mounting Method", "type": "dropdown", "options": ["magnetic", "stud_mount", "adhesive", "handheld"]},
+        {"id": "load_percent", "label": "Load (%)", "type": "number", "min": 0, "max": 100, "default": 100}
+    ]
+}
