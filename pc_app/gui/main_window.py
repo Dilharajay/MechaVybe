@@ -67,12 +67,39 @@ class ImuApp(QMainWindow):
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
         
-        # --- TAB 1: Dashboard (Plotting & Data Logger) ---
+        # --- TAB 1: Dashboard (Plotting, Configuration & Data Logger) ---
         dash_widget = QWidget()
-        dash_layout = QVBoxLayout()
+        dash_layout = QHBoxLayout()  # Main layout is Side-by-Side
         dash_widget.setLayout(dash_layout)
         
-        # Dashboard Status Pane
+        # --- LEFT COLUMN: Controls & Config ---
+        left_col_widget = QWidget()
+        left_col = QVBoxLayout()
+        left_col_widget.setLayout(left_col)
+        
+        # 1. Connection Panel
+        conn_group = QGroupBox("Connection & Logging")
+        conn_layout = QHBoxLayout()
+        self.port_combo = QComboBox()
+        for port in self.serial_mgr.get_ports():
+            self.port_combo.addItem(port)
+            
+        conn_layout.addWidget(self.port_combo)
+        self.refresh_btn = QPushButton("Refresh")
+        self.refresh_btn.clicked.connect(self.refresh_ports)
+        conn_layout.addWidget(self.refresh_btn)
+        self.connect_btn = QPushButton("Connect")
+        self.connect_btn.clicked.connect(self.toggle_connection)
+        conn_layout.addWidget(self.connect_btn)
+        
+        self.rec_btn = QPushButton("Start Recording")
+        self.rec_btn.clicked.connect(self.toggle_recording)
+        conn_layout.addWidget(self.rec_btn)
+        
+        conn_group.setLayout(conn_layout)
+        left_col.addWidget(conn_group)
+        
+        # 2. Dashboard Status Pane
         status_group = QGroupBox("Data Acquisition Status")
         status_layout = QHBoxLayout()
         
@@ -88,103 +115,51 @@ class ImuApp(QMainWindow):
         self.lbl_sampling = QLabel("50 Hz")
         self.lbl_received = QLabel("0")
         self.lbl_expected = QLabel("0")
-        self.lbl_integrity = QLabel("100.00%")
-        col2.addRow("Sampling rate:", self.lbl_sampling)
-        col2.addRow("Expected samples:", self.lbl_expected)
-        col2.addRow("Received samples:", self.lbl_received)
-        col2.addRow("Stream integrity:", self.lbl_integrity)
-        
-        col_err = QFormLayout()
-        self.lbl_dropped = QLabel("0")
-        self.lbl_duplicates = QLabel("0")
-        self.lbl_disconnects = QLabel("0")
-        col_err.addRow("Dropped samples:", self.lbl_dropped)
-        col_err.addRow("Duplicate samples:", self.lbl_duplicates)
-        col_err.addRow("USB disconnects:", self.lbl_disconnects)
+        col2.addRow("Actual Rate:", self.lbl_sampling)
+        col2.addRow("Received Samples:", self.lbl_received)
+        col2.addRow("Expected Samples:", self.lbl_expected)
         
         col3 = QFormLayout()
-        self.lbl_rpm = QLabel("N/A")
-        self.lbl_voltage = QLabel("N/A")
-        self.lbl_current = QLabel("N/A")
-        col3.addRow("RPM:", self.lbl_rpm)
-        col3.addRow("Voltage:", self.lbl_voltage)
-        col3.addRow("Current:", self.lbl_current)
+        self.lbl_dropped = QLabel("0")
+        self.lbl_duplicates = QLabel("0")
+        self.lbl_integrity = QLabel("100.00%")
+        self.lbl_disconnects = QLabel("0")
+        col3.addRow("Dropped Samples:", self.lbl_dropped)
+        col3.addRow("Duplicate/Reset:", self.lbl_duplicates)
+        col3.addRow("Stream Integrity:", self.lbl_integrity)
+        col3.addRow("USB Disconnects:", self.lbl_disconnects)
         
         status_layout.addLayout(col1)
         status_layout.addLayout(col2)
-        status_layout.addLayout(col_err)
         status_layout.addLayout(col3)
         status_group.setLayout(status_layout)
-        dash_layout.addWidget(status_group)
+        left_col.addWidget(status_group)
         
-        # Connection Panel
-        conn_layout = QHBoxLayout()
-        self.port_combo = QComboBox()
-        self.refresh_ports()
-        conn_layout.addWidget(QLabel("COM Port:"))
-        conn_layout.addWidget(self.port_combo)
-        self.refresh_btn = QPushButton("Refresh")
-        self.refresh_btn.clicked.connect(self.refresh_ports)
-        conn_layout.addWidget(self.refresh_btn)
-        self.connect_btn = QPushButton("Connect")
-        self.connect_btn.clicked.connect(self.toggle_connection)
-        conn_layout.addWidget(self.connect_btn)
-        
-        self.rec_btn = QPushButton("Start Recording")
-        self.rec_btn.clicked.connect(self.toggle_recording)
-        conn_layout.addWidget(self.rec_btn)
-        
-        dash_layout.addLayout(conn_layout)
-        
-        # Plots
-        self.graph_widget = pg.GraphicsLayoutWidget()
-        dash_layout.addWidget(self.graph_widget)
-        self.accel_plot = self.graph_widget.addPlot(title="Accelerometer (m/s²)")
-        self.accel_plot.addLegend()
-        self.graph_widget.nextRow()
-        self.gyro_plot = self.graph_widget.addPlot(title="Gyroscope (rad/s)")
-        self.gyro_plot.addLegend()
-        
-        self.curves = {
-            'ax': self.accel_plot.plot(pen='r', name="Acc X"), 'ay': self.accel_plot.plot(pen='g', name="Acc Y"), 'az': self.accel_plot.plot(pen='b', name="Acc Z"),
-            'gx': self.gyro_plot.plot(pen='r', name="Gyro X"), 'gy': self.gyro_plot.plot(pen='g', name="Gyro Y"), 'gz': self.gyro_plot.plot(pen='b', name="Gyro Z")
-        }
-        self.tabs.addTab(make_scrollable(dash_widget), "Dashboard")
-        
-        # --- TAB 2: Device Configuration ---
-        config_widget = QWidget()
-        config_layout = QVBoxLayout()
-        config_widget.setLayout(config_layout)
-        
+        # 3. Data Acquisition Parameters
         daq_group = QGroupBox("Data Acquisition Parameters")
         daq_form = QFormLayout()
         
-        # Device ID
         self.id_input = QLineEdit("ESP32-S3-01")
         self.id_btn = QPushButton("Set Device ID")
         self.id_btn.clicked.connect(lambda: self.send_cmd(f"SET:ID:{self.id_input.text().strip()}"))
         daq_form.addRow(self.id_input, self.id_btn)
         
-        # Sensor Type
         self.sensor_combo = QComboBox()
         self.sensor_combo.addItems(["MPU6050", "ADXL345 (I2C)"])
         self.sensor_btn = QPushButton("Set Sensor")
         self.sensor_btn.clicked.connect(lambda: self.send_cmd(f"SET:SENSOR:{self.sensor_combo.currentText().split(' ')[0]}"))
         daq_form.addRow(self.sensor_combo, self.sensor_btn)
         
-        # Connection Type
         self.conn_combo = QComboBox()
         self.conn_combo.addItems(["USB (Serial)", "Wi-Fi UDP"])
         daq_form.addRow("Connection:", self.conn_combo)
         
-        # Sampling Rate
         self.rate_combo = QComboBox()
         self.rate_combo.addItems(["10", "20", "50", "100", "200", "500", "1000", "2000", "4000"])
         self.rate_btn = QPushButton("Set Sampling Rate (Hz)")
         self.rate_btn.clicked.connect(lambda: self.send_cmd(f"SET:RATE:{self.rate_combo.currentText()}"))
         daq_form.addRow(self.rate_combo, self.rate_btn)
         
-        # Ranges
         self.accel_combo = QComboBox()
         self.accel_combo.addItems(["2", "4", "8", "16"])
         self.accel_btn = QPushButton("Set Accel Range (±g)")
@@ -197,26 +172,23 @@ class ImuApp(QMainWindow):
         self.gyro_btn.clicked.connect(lambda: self.send_cmd(f"SET:GYRO:{self.gyro_combo.currentText()}"))
         daq_form.addRow(self.gyro_combo, self.gyro_btn)
         
-        # Channels
         self.chan_combo = QComboBox()
         self.chan_combo.addItems(["6 (Accel + Gyro)", "3 (Accel Only)"])
         daq_form.addRow("Number of channels:", self.chan_combo)
         
-        # Time Source
         self.time_combo = QComboBox()
         self.time_combo.addItems(["Device (ESP32 microsecond clock)", "Host (PC time.time)"])
         daq_form.addRow("Timestamp source:", self.time_combo)
         
-        # Duration
         self.duration_spin = QSpinBox()
         self.duration_spin.setRange(0, 3600)
         self.duration_spin.setSuffix(" seconds (0 = Infinite)")
         daq_form.addRow("Recording duration:", self.duration_spin)
         
         daq_group.setLayout(daq_form)
-        config_layout.addWidget(daq_group)
+        left_col.addWidget(daq_group)
         
-        # Wi-Fi
+        # 4. Wi-Fi Configuration
         wifi_group = QGroupBox("Wi-Fi Configuration (NVS)")
         wifi_form = QFormLayout()
         self.ssid_input = QLineEdit()
@@ -228,9 +200,9 @@ class ImuApp(QMainWindow):
         wifi_form.addRow("Password:", self.pwd_input)
         wifi_form.addRow("", self.send_wifi_btn)
         wifi_group.setLayout(wifi_form)
-        config_layout.addWidget(wifi_group)
+        left_col.addWidget(wifi_group)
         
-        # Recording Metadata
+        # 5. Recording Metadata
         meta_group = QGroupBox("Dataset & Recording Metadata")
         meta_layout = QVBoxLayout()
         
@@ -249,13 +221,38 @@ class ImuApp(QMainWindow):
         meta_layout.addLayout(self.dynamic_meta_form)
         
         meta_group.setLayout(meta_layout)
-        config_layout.addWidget(meta_group)
+        left_col.addWidget(meta_group)
         
         self.metadata_profiles = {}
         self.meta_widgets = {}
         
-        config_layout.addStretch()
-        self.tabs.addTab(make_scrollable(config_widget), "Configuration")
+        left_col.addStretch()
+        
+        # Add left column to dash layout wrapped in scroll area
+        dash_layout.addWidget(make_scrollable(left_col_widget), stretch=2)
+        
+        # --- RIGHT COLUMN: Plots ---
+        right_col_widget = QWidget()
+        right_col = QVBoxLayout()
+        right_col_widget.setLayout(right_col)
+        
+        self.graph_widget = pg.GraphicsLayoutWidget()
+        right_col.addWidget(self.graph_widget)
+        self.accel_plot = self.graph_widget.addPlot(title="Accelerometer (m/s²)")
+        self.accel_plot.addLegend()
+        self.graph_widget.nextRow()
+        self.gyro_plot = self.graph_widget.addPlot(title="Gyroscope (rad/s)")
+        self.gyro_plot.addLegend()
+        
+        self.curves = {
+            'ax': self.accel_plot.plot(pen='r', name="Acc X"), 'ay': self.accel_plot.plot(pen='g', name="Acc Y"), 'az': self.accel_plot.plot(pen='b', name="Acc Z"),
+            'gx': self.gyro_plot.plot(pen='r', name="Gyro X"), 'gy': self.gyro_plot.plot(pen='g', name="Gyro Y"), 'gz': self.gyro_plot.plot(pen='b', name="Gyro Z")
+        }
+        
+        # Add right column to dash layout
+        dash_layout.addWidget(right_col_widget, stretch=5)
+        
+        self.tabs.addTab(dash_widget, "Dashboard")
         
         # --- TAB 3: Diagnostics & Calibration ---
         diag_widget = QWidget()
