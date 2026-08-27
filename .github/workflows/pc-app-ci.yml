@@ -1,0 +1,45 @@
+name: PC App CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'pc_app/**'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'pc_app/**'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+        cache-dependency-glob: "pc_app/uv.lock"
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.13'
+
+    - name: Install dependencies
+      working-directory: ./pc_app
+      run: uv sync
+
+    - name: Build Executable with PyInstaller
+      working-directory: ./pc_app
+      run: uv run pyinstaller --noconfirm MechaVybe.spec
+
+    - name: Upload PC App Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mechavybe-pc-app-windows
+        path: pc_app/dist/MechaVybe/
+        retention-days: 7
