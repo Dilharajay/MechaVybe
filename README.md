@@ -27,9 +27,9 @@ flowchart TD
     end
 
     subgraph ML Pipeline [Modeling Pipeline]
-        H --> I[Feature Extraction (Spectral)]
-        I --> J[TensorFlow Autoencoder Training]
-        J --> K[Quantization & Thresholding]
+        H --> I[Dagster Orchestration]
+        I --> J[TensorFlow Autoencoder & MLflow Tracking]
+        J --> K[Quantization & Export (C Header)]
         K -->|INT8 TFLite Model| B
     end
 ```
@@ -41,14 +41,14 @@ sequenceDiagram
     participant MPU as MPU6050
     participant ESP as ESP32-S3
     participant PC as PyQt6 App
-    participant ML as TF Pipeline
+    participant ML as Dagster/TF Pipeline
 
     MPU->>ESP: Raw Sensor Data (1kHz)
     Note over ESP: Batch 50 samples<br/>Run TFLite Inference
     ESP->>PC: Binary Packets (USB/UDP)
     Note over PC: Apply DSP Filters<br/>Compute FFT & Metrics
     PC->>ML: Record Apache Parquet + JSON
-    Note over ML: Train Autoencoder<br/>Compute 99th %ile MSE
+    Note over ML: Train Autoencoder<br/>Compute 99th %ile MSE<br/>Track in MLflow
     ML->>ESP: Export INT8 TFLite Model (C Header)
 ```
 
@@ -65,15 +65,20 @@ MechaVybe/
 │   ├── include/
 │   │   └── model_data.h       # Exported C header of the INT8 TFLite model
 │   └── platformio.ini         # PlatformIO build configuration
-├── pc_app/                    # Python/PyQt6 desktop application
+├── pc_app/                # Python/PyQt6 desktop application
 │   ├── main.py                # App entry point
 │   ├── ui/                    # PyQt6 UI layout and styling
 │   ├── dsp/                   # Digital Signal Processing, filtering, FFT
 │   └── storage/               # Parquet writer and JSON metadata logger
 └── modeling/                  # Python/TensorFlow training pipeline
-    ├── train_autoencoder.py   # TF Autoencoder architecture and training script
-    ├── extract_features.py    # Spectral feature extraction from Parquet data
-    └── quantize_export.py     # INT8 model quantization and C header generation
+    ├── src/                   # Modular training assets
+    │   ├── dagster_pipeline.py# Dagster assets and MLflow integration
+    │   ├── data.py            # Data ingestion
+    │   ├── features.py        # Spectral feature extraction
+    │   ├── model.py           # Autoencoder architecture
+    │   └── export.py          # Quantization and header generation
+    ├── workspace.yaml         # Dagster workspace config
+    └── pyproject.toml         # Dependencies (uv)
 ```
 
 ## 3. Key Terminology & Concepts
@@ -227,8 +232,8 @@ The system metrics map to standard condition monitoring guidelines:
 ### End-to-End Workflow
 1. **Connect:** Connect the ESP32 via USB or Wi-Fi (UDP).
 2. **Record:** Use the PC app to log healthy baseline data to Parquet format.
-3. **Train:** Run `modeling/train_autoencoder.py` on the recorded Parquet dataset to build the ML model.
-4. **Deploy:** The pipeline automatically runs `quantize_export.py` to generate an INT8 TFLite C header. Move this header to `firmware/include/` and re-flash the ESP32 to enable on-device anomaly detection.
+3. **Train:** Navigate to `modeling/` and run `uv run dagster dev` to execute the ML pipeline, while tracking metrics with `uv run mlflow ui`.
+4. **Deploy:** The pipeline automatically exports an INT8 TFLite C header. Move this header to `firmware/include/` and re-flash the ESP32 to enable on-device anomaly detection.
 
 ## 7. Communication Protocol Reference
 

@@ -55,15 +55,18 @@ flowchart LR
 
 ```
 modeling/
-├── train.py              # Main training script (data → model → C header)
-├── test.py               # TFLite model inference tests (needs updating)
-├── model_converter.py    # Standalone .tflite → C header converter
+├── src/                  # Modular pipeline source code
+│   ├── data.py           # Data loading and synthetic generation
+│   ├── features.py       # FFT extraction and scaling
+│   ├── model.py          # Keras Autoencoder definition
+│   ├── export.py         # TFLite conversion and C-header generation
+│   └── dagster_pipeline.py # Dagster orchestration and MLflow tracking
+├── workspace.yaml        # Dagster workspace configuration
 ├── pyproject.toml        # Python dependencies (managed by uv)
 ├── eda.ipynb             # Exploratory data analysis notebook
 ├── notebooks/            # Additional analysis notebooks
 └── model/                # Training output directory
     ├── anomaly_model.tflite   # Quantized INT8 model (13,976 bytes)
-    ├── model.tflite           # Legacy model (old classifier)
     └── model.h                # C header for ESP32 firmware
 ```
 
@@ -330,40 +333,40 @@ INT8 quantization introduces a small precision loss. However, for anomaly detect
 ---
 
 ## 7. C Header Generation
-
-The training script (`train.py`) generates a self-contained C header file that embeds everything the ESP32 firmware needs.
-
+ 
+The final step of the Dagster pipeline (`exported_model` asset) generates a self-contained C header file that embeds everything the ESP32 firmware needs.
+ 
 ### 7.1 Contents of `model.h`
-
+ 
 ```c
 // Auto-generated Anomaly Detection Model
 // Input Shape: 65 (FFT Bins)
 // Threshold: 0.001234
-
+ 
 #ifndef MODEL_H
 #define MODEL_H
-
+ 
 #include <stdint.h>
-
+ 
 // Quantized TFLite model weights
 const unsigned int model_tflite_len = 13976;
 const uint8_t model_tflite[] = {
     0x20, 0x00, 0x00, 0x00, 0x54, 0x46, 0x4c, 0x33, ...
 };
-
+ 
 // Per-bin normalization constants (from training data)
 const float feature_max[65] = {
     12.3456, 8.7654, 5.4321, ...
 };
-
+ 
 // Anomaly decision threshold
 const float ANOMALY_THRESHOLD = 0.001234;
-
+ 
 #endif // MODEL_H
 ```
-
+ 
 ### 7.2 What Each Section Does
-
+ 
 | Section             | Purpose                                                         |
 | ------------------- | --------------------------------------------------------------- |
 | `model_tflite[]`    | The INT8 quantized model weights as a byte array                |
@@ -371,17 +374,7 @@ const float ANOMALY_THRESHOLD = 0.001234;
 | `feature_max[65]`   | Per-frequency-bin max values for MinMax normalization            |
 | `ANOMALY_THRESHOLD` | MSE threshold — if reconstruction error exceeds this, flag anomaly |
 
-### 7.3 Standalone Converter
-
-The `model_converter.py` script provides an alternative conversion path using a `g_model[]` array format with 16-byte alignment:
-
-```python
-# Converts model/model.tflite → ../firmware/src/model.h
-# Output uses `alignas(16)` for optimal DMA access on ESP32
-python model_converter.py
-```
-
-### 7.4 Deployment
+### 7.3 Deployment
 
 Copy the generated header to the firmware include directory:
 
@@ -393,7 +386,7 @@ copy model\model.h ..\firmware\include\model.h
 
 ## 8. Synthetic Data Generation
 
-When no real `.parquet` recordings are available, `train.py` automatically generates synthetic vibration data for development and testing.
+When no real `.parquet` recordings are available, the `raw_signal` Dagster asset automatically generates synthetic vibration data using `src.data.generate_synthetic_data` for development and testing.
 
 ### 8.1 Healthy Signal
 
@@ -443,11 +436,12 @@ $$
 
 | Package        | Version   | Purpose                          |
 | -------------- | --------- | -------------------------------- |
+| dagster        | ≥ 1.13.19 | Orchestration and Pipeline management |
+| mlflow         | ≥ 3.15.2  | Experiment and metric tracking   |
 | tensorflow     | ≥ 2.21.0  | Model training and TFLite export |
 | numpy          | ≥ 2.5.2   | Numerical computation            |
-| pandas         | ≥ 3.0.5   | Parquet data loading             |
+| pandas         | ≥ 2.3.3   | Parquet data loading             |
 | scipy          | ≥ 1.18.1  | FFT computation                  |
-| pyarrow        | ≥ 25.0.1  | Parquet file I/O backend         |
 | scikit-learn   | ≥ 1.9.0   | Utility functions                |
 | matplotlib     | ≥ 3.11.1  | Plotting and visualization       |
 
@@ -456,7 +450,7 @@ $$
 ```mermaid
 flowchart TD
     A["1. Collect healthy vibration data\nvia PC app (BLE recordings)"] --> B["2. Data saved as .parquet files\nin pc_app/dataset/machine_001/healthy/"]
-    B --> C["3. Run training pipeline\nuv run python train.py"]
+    B --> C["3. Run Dagster pipeline\nuv run dagster dev"]
     C --> D["4. Model artifacts generated\nmodel/anomaly_model.tflite\nmodel/model.h"]
     D --> E["5. Copy model.h to firmware\nfirmware/include/model.h"]
     E --> F["6. Build & flash ESP32 firmware\nidf.py build && idf.py flash"]
@@ -471,28 +465,24 @@ flowchart TD
 # Files are saved to: pc_app/dataset/machine_001/healthy/*.parquet
 ```
 
-**Step 2 — Train the model**:
+**Step 2 — Train the model using Dagster and MLflow**:
 ```powershell
 cd modeling
-uv run python train.py
-```
 
-Expected output:
+# Open the Dagster Orchestration UI
+uv run dagster dev
 ```
-Loading 12 real dataset files from ../pc_app/dataset/machine_001/healthy/...
-Extracted 3124 training windows. Feature size: 65
-Training Autoencoder on healthy baseline data...
-Epoch 1/30 - loss: 0.0234 - val_loss: 0.0198
-...
-Epoch 30/30 - loss: 0.0012 - val_loss: 0.0011
+Visit `http://localhost:3000` to materialize the assets.
 
-Calculated Anomaly Threshold: 0.001234
-Saved TFLite model: model/anomaly_model.tflite (13976 bytes)
-Saved C-Header: model/model.h
-Done! You can now copy model/model.h to your ESP32 firmware/include/ directory.
+**Step 3 — Monitor training with MLflow**:
+```powershell
+# In a new terminal
+cd modeling
+uv run mlflow ui
 ```
+Visit `http://localhost:5000` to track parameters, reconstruction loss, and anomaly thresholds across different runs.
 
-**Step 3 — Deploy to firmware**:
+**Step 4 — Deploy to firmware**:
 ```powershell
 copy model\model.h ..\firmware\include\model.h
 cd ..\firmware
@@ -589,14 +579,14 @@ print(f"Fault detection rate: {detection_rate:.1f}%")
 ---
 
 ## Quick Reference
-
+ 
 ```powershell
-# Train model (from modeling/ directory)
-uv run python train.py
-
-# Convert model to C header (standalone, alternative to train.py built-in export)
-uv run python model_converter.py
-
+# Run orchestration UI
+uv run dagster dev
+ 
+# Run tracking UI (in separate terminal)
+uv run mlflow ui
+ 
 # Deploy to firmware
 copy model\model.h ..\firmware\include\model.h
 ```
