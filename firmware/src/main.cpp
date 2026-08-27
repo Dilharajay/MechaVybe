@@ -47,6 +47,8 @@ void IRAM_ATTR rpm_isr() {
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 
+#include <WiFi.h>
+#include <WiFiUdp.h>
 
 namespace
 {
@@ -65,6 +67,16 @@ TfLiteTensor* output = nullptr;
 // ---------------------------------------------------------
 
 uint8_t* tensor_arena = nullptr;
+
+// ---------------------------------------------------------
+// UDP Streaming
+// ---------------------------------------------------------
+
+WiFiUDP udpServer;
+bool udpStarted = false;
+IPAddress udpClientIp;
+uint16_t udpClientPort = 0;
+bool udpInitialized = false;
 
 
 // ---------------------------------------------------------
@@ -543,6 +555,36 @@ void loop()
         }
     }
 
+    if (WiFi.status() == WL_CONNECTED) {
+        if (!udpInitialized) {
+            udpServer.begin(4242);
+            udpInitialized = true;
+            Logger::info("UDP Server listening on port 4242");
+        }
+        
+        int packetSize = udpServer.parsePacket();
+        if (packetSize) {
+            char buf[32];
+            int len = udpServer.read(buf, sizeof(buf)-1);
+            if (len > 0) {
+                buf[len] = 0;
+                String msg = String(buf);
+                if (msg.startsWith("START_STREAM")) {
+                    udpClientIp = udpServer.remoteIP();
+                    udpClientPort = udpServer.remotePort();
+                    udpStarted = true;
+                    Logger::info("UDP Stream started to %s:%d", udpClientIp.toString().c_str(), udpClientPort);
+                } else if (msg.startsWith("STOP_STREAM")) {
+                    udpStarted = false;
+                    Logger::info("UDP Stream stopped");
+                }
+            }
+        }
+    } else {
+        udpInitialized = false;
+        udpStarted = false;
+    }
+
     processSerial();
     ota.handle();
 
@@ -601,7 +643,13 @@ void loop()
             }
             tx_packet.crc = crc;
             
-            Serial.write((uint8_t*)&tx_packet, sizeof(BinaryPacket));
+            if (udpStarted && WiFi.status() == WL_CONNECTED) {
+                udpServer.beginPacket(udpClientIp, udpClientPort);
+                udpServer.write((uint8_t*)&tx_packet, sizeof(BinaryPacket));
+                udpServer.endPacket();
+            } else {
+                Serial.write((uint8_t*)&tx_packet, sizeof(BinaryPacket));
+            }
             tx_packet.sample_count = 0;
         }
     }

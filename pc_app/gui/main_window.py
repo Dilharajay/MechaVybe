@@ -167,7 +167,7 @@ class ImuApp(QMainWindow):
         
         # Connection Type
         self.conn_combo = QComboBox()
-        self.conn_combo.addItems(["USB (Serial)", "Wi-Fi UDP (Coming Soon)"])
+        self.conn_combo.addItems(["USB (Serial)", "Wi-Fi UDP"])
         daq_form.addRow("Connection:", self.conn_combo)
         
         # Sampling Rate
@@ -582,7 +582,12 @@ class ImuApp(QMainWindow):
             self.connect_btn.setText("Connect")
             self.lbl_conn.setText("Disconnected")
         else:
-            port = self.port_combo.currentText()
+            conn_type = self.conn_combo.currentText()
+            if "UDP" in conn_type:
+                port = "UDP"
+            else:
+                port = self.port_combo.currentText()
+                
             if port:
                 try:
                     self.serial_mgr.connect(port)
@@ -606,9 +611,9 @@ class ImuApp(QMainWindow):
 
     def send_cmd(self, cmd):
         if self.serial_mgr.is_connected():
-            self.serial_mgr.port.write((cmd + "\n").encode('utf-8'))
+            self.serial_mgr.send_cmd(cmd)
         else:
-            QMessageBox.warning(self, "Warning", "Please connect to the COM port first!")
+            QMessageBox.warning(self, "Warning", "Please connect to the device first!")
 
     def send_wifi_config(self):
         ssid = self.ssid_input.text().strip()
