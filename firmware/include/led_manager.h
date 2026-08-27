@@ -2,21 +2,24 @@
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
+enum class LedPattern {
+    OFF,
+    SOLID,
+    SLOW_PULSE,
+    FAST_FLASH,
+    DOUBLE_BLINK,
+    RAPID_STROBE
+};
+
 class LedManager {
 public:
     LedManager();
     
-    /**
-     * @brief Initializes the addressable RGB LED.
-     */
     void begin();
+    void update(); // Must be called in loop()
     
-    /**
-     * @brief Sets the RGB LED color (0-255 for each channel).
-     */
-    void setColor(uint8_t r, uint8_t g, uint8_t b);
+    void setColor(uint8_t r, uint8_t g, uint8_t b); // Legacy compatibility
     
-    // Quick status helpers
     void setWifiConnecting();
     void setWifiConnected();
     void setWifiError();
@@ -31,4 +34,6 @@ public:
 
 private:
     Adafruit_NeoPixel pixels;
+    LedPattern currentPattern = LedPattern::OFF;
+    uint8_t r_val=255, g_val=0, b_val=0; // Default to red
 };

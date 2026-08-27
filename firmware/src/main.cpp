@@ -637,6 +637,9 @@ float run_inference(
 
 void loop()
 {
+    // Update non-blocking LED blinking patterns
+    statusLed.update();
+
     // Handle BOOT button for mode switching
     int btnState = digitalRead(Config::BUTTON_PIN);
     if (btnState == LOW) { // Button is pressed (active low)
@@ -823,18 +826,14 @@ void loop()
             float prediction = run_inference(x1, x2);
             int predicted_class = prediction >= Config::PREDICTION_THRESHOLD ? 1 : 0;
             
-            // Update LED Status
+            // Update LED Status (Prioritize Anomaly > MQTT Error > Healthy)
             bool mqtt_ok = mqttClient.connected();
-            if (!mqtt_ok) {
-                // Quick Orange flash to visually indicate MQTT is down during prediction
-                statusLed.setMqttError();
-                delay(50);
-            }
-            
             if (predicted_class == 1) {
-                statusLed.setInferenceAnomaly(); // Red
+                statusLed.setInferenceAnomaly();
+            } else if (!mqtt_ok) {
+                statusLed.setMqttError();
             } else {
-                statusLed.setInferenceHealthy(); // Green
+                statusLed.setInferenceHealthy();
             }
 
             // Publish via MQTT
