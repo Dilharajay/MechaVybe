@@ -383,7 +383,13 @@ pio run -e esp32-s3 --target upload --upload-port esp32-s3.local
 pio device monitor -b 921600
 ```
 
-### `platformio.ini` Summary
+#### `platformio.ini` Summary & Build Environments
+
+The project provides three primary build environments tailored for different deployment stages:
+
+* **`esp32-s3`**: The default environment. Includes both Data Collection mode (high-speed UDP streaming) and Inference mode. Used for initial setup and model training.
+* **`esp32-s3-ota`**: Same as default, but configured to upload the compiled binary over Wi-Fi (Over-The-Air) instead of USB.
+* **`esp32-s3-prod`**: The **production** environment. It uses the `-DINFERENCE_ONLY_MODE=1` flag to permanently compile out the UDP data collection and serial logging overhead, locking the device into predictive mode and significantly reducing the binary footprint.
 
 ```ini
 [env:esp32-s3]
@@ -391,11 +397,12 @@ platform    = espressif32
 board       = esp32-s3-devkitc-1
 framework   = arduino
 upload_speed = 921600
-monitor_speed = 115200
+monitor_speed = 921600
 
 build_unflags = -std=gnu++11
 build_flags =
     -std=gnu++14
+    -fno-access-control
     -DBOARD_HAS_PSRAM
     -DTF_LITE_STATIC_MEMORY
     -I.pio/libdeps/esp32-s3/esp-tflite-micro/third_party/flatbuffers/include
@@ -409,6 +416,22 @@ lib_deps =
     adafruit/Adafruit Unified Sensor @ ^1.1.14
     adafruit/Adafruit NeoPixel @ ^1.12.0
     adafruit/Adafruit ADXL345 @ ^1.3.4
+
+[env:esp32-s3-ota]
+extends = env:esp32-s3
+upload_protocol = espota
+upload_port = esp32-s3.local
+
+[env:esp32-s3-prod]
+extends = env:esp32-s3
+build_flags = 
+    ${env:esp32-s3.build_flags}
+    -DINFERENCE_ONLY_MODE=1
+```
+
+To flash the production environment:
+```bash
+pio run -e esp32-s3-prod -t upload
 ```
 
 **Key build flags:**

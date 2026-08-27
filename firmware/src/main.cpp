@@ -99,7 +99,11 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
 uint32_t last_pc_msg = 0;
+#ifdef INFERENCE_ONLY_MODE
+static const bool predictionMode = true;
+#else
 bool predictionMode = false; // 0 = Logger, 1 = Prediction
+#endif
 bool buttonPressed = false;
 uint32_t buttonPressTime = 0;
 bool cli_logs_enabled = false;
@@ -183,7 +187,9 @@ void processSerial() {
             }
         } else if (cmd.startsWith("MODE:")) {
             int mode = cmd.substring(5).toInt();
+#ifndef INFERENCE_ONLY_MODE
             predictionMode = (mode == 1);
+#endif
             Logger::info("Mode set to %d", mode);
             if (!predictionMode) {
                 statusLed.setDataCollection(); // Explicit Cyan for Data Collection
@@ -647,6 +653,7 @@ void loop()
             buttonPressed = true;
             buttonPressTime = millis();
         } else if (millis() - buttonPressTime > 1500) { // 1.5s long press
+#ifndef INFERENCE_ONLY_MODE
             predictionMode = !predictionMode;
             statusLed.setModeSwitching();
             Logger::info("Mode switched via button to: %s", predictionMode ? "Inference" : "Data Collection");
@@ -657,6 +664,11 @@ void loop()
                 // Restore LED to Data Collection mode explicitly
                 statusLed.setDataCollection();
             }
+#else
+            Logger::info("Mode switching disabled in INFERENCE_ONLY_MODE");
+            delay(1000);
+            buttonPressed = false;
+#endif
         }
     } else {
         buttonPressed = false;
