@@ -186,11 +186,9 @@ void processSerial() {
             predictionMode = (mode == 1);
             Logger::info("Mode set to %d", mode);
             if (!predictionMode) {
-                if (millis() - last_pc_msg < 3000) statusLed.setPcConnected();
-                else if (WiFi.status() == WL_CONNECTED) statusLed.setWifiConnected();
-                else statusLed.turnOff();
+                statusLed.setDataCollection(); // Explicit Cyan for Data Collection
             } else {
-                statusLed.setModeSwitching(); // Will be overwritten by inference loop
+                statusLed.setModeSwitching(); // Will turn Green when inference runs
             }
         } else if (cmd.startsWith("SET:RATE:")) {
             int rate = cmd.substring(9).toInt();
@@ -653,14 +651,8 @@ void loop()
             buttonPressed = false;
             
             if (!predictionMode) {
-                // Restore LED to Data Collection mode
-                if (millis() - last_pc_msg < 3000) {
-                    statusLed.setPcConnected();
-                } else if (WiFi.status() == WL_CONNECTED) {
-                    statusLed.setWifiConnected();
-                } else {
-                    statusLed.turnOff();
-                }
+                // Restore LED to Data Collection mode explicitly
+                statusLed.setDataCollection();
             }
         }
     } else {
@@ -674,14 +666,10 @@ void loop()
     if (pcConnected != lastPcConnected) {
         lastPcConnected = pcConnected;
         if (pcConnected && !predictionMode) {
-            statusLed.setPcConnected();
+            statusLed.setDataCollection();
             Logger::info("PC Connected!");
         } else if (!predictionMode) {
-            if (WiFi.status() == WL_CONNECTED) {
-                statusLed.setWifiConnected();
-            } else {
-                statusLed.turnOff();
-            }
+            statusLed.setDataCollection();
             Logger::info("PC Disconnected.");
         }
     }
