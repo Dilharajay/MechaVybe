@@ -18,7 +18,12 @@ def generate_synthetic_data(num_samples, fs=1000.0, healthy=True):
     return signal
 
 def load_data(data_dir: str, target_axis: str = 'az', fs: float = 1000.0) -> np.ndarray:
-    parquet_files = glob.glob(os.path.join(data_dir, "**/*.parquet"), recursive=True)
+    # Only load data from "healthy" directories to train the anomaly baseline
+    parquet_files = glob.glob(os.path.join(data_dir, "**", "healthy", "**", "*.parquet"), recursive=True)
+    
+    # Fallback to general parquet scan if the folder structure is different
+    if not parquet_files:
+        parquet_files = glob.glob(os.path.join(data_dir, "**/*.parquet"), recursive=True)
 
     if len(parquet_files) > 0:
         print(f"Loading {len(parquet_files)} real dataset files from {data_dir}...")
