@@ -228,8 +228,8 @@ The system metrics map to standard condition monitoring guidelines:
 ### Firmware Flashing
 1. Install VS Code and the PlatformIO extension.
 2. Open the `firmware/` directory in PlatformIO.
-3. Build and Upload to your ESP32-S3.
-
+3. Build and Upload the default environment (`esp32-s3`) to your ESP32-S3 for data collection.
+4. *Optional: For deploying a final, stripped-down node running only predictive inference, upload the `esp32-s3-prod` environment.*
 ### PC App Installation
 1. Install Python 3.10+ and the `uv` package manager.
 2. Navigate to `pc_app/` and run `uv sync`.
