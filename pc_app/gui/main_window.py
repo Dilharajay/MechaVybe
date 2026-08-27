@@ -145,9 +145,18 @@ class ImuApp(QMainWindow):
         col3.addRow("Stream Integrity:", self.lbl_integrity)
         col3.addRow("USB Disconnects:", self.lbl_disconnects)
         
+        col4 = QFormLayout()
+        self.lbl_rpm = QLabel("N/A")
+        self.lbl_voltage = QLabel("N/A")
+        self.lbl_current = QLabel("N/A")
+        col4.addRow("RPM:", self.lbl_rpm)
+        col4.addRow("Voltage:", self.lbl_voltage)
+        col4.addRow("Current:", self.lbl_current)
+        
         status_layout.addLayout(col1)
         status_layout.addLayout(col2)
         status_layout.addLayout(col3)
+        status_layout.addLayout(col4)
         status_group.setLayout(status_layout)
         left_col.addWidget(status_group)
         
