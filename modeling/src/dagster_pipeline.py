@@ -55,12 +55,31 @@ def trained_autoencoder(context: AssetExecutionContext, config: TrainConfig, tra
     X_train_scaled = training_features["X_train_scaled"]
     input_dim = X_train_scaled.shape[1]
     
-    with mlflow.start_run() as run:
+    with mlflow.start_run(run_name="Autoencoder_Training") as run:
+        # 1. Tags & Description
+        mlflow.set_tag("model_type", "autoencoder")
+        mlflow.set_tag("framework", "tensorflow/keras")
+        mlflow.set_tag("target_hardware", "ESP32-S3")
+        mlflow.set_tag("mlflow.note.content", 
+            "### MechaVybe Edge Autoencoder\n"
+            "Unsupervised model trained exclusively on healthy vibration FFT data to detect mechanical anomalies via reconstruction error."
+        )
+
+        # 2. Dataset Info
+        mlflow.log_param("dataset_samples", X_train_scaled.shape[0])
+        mlflow.log_param("input_dim", input_dim)
+        
+        try:
+            # Using MLflow 2.4+ Dataset tracking API
+            dataset = mlflow.data.from_numpy(X_train_scaled, name="healthy_vibration_fft")
+            mlflow.log_input(dataset, context="training")
+        except Exception as e:
+            context.log.warning(f"Could not log MLflow dataset object: {e}")
+            
         mlflow.log_param("epochs", config.epochs)
         mlflow.log_param("batch_size", config.batch_size)
         mlflow.log_param("validation_split", config.validation_split)
         mlflow.log_param("percentile_threshold", config.percentile_threshold)
-        mlflow.log_param("input_dim", input_dim)
         
         # Build and train
         model = build_autoencoder(input_dim)
@@ -84,8 +103,12 @@ def trained_autoencoder(context: AssetExecutionContext, config: TrainConfig, tra
         
         mlflow.log_metric("anomaly_threshold", threshold)
         
-        # Save model to mlflow
-        mlflow.keras.log_model(model, "autoencoder_model")
+        # 3. Save and Register Model
+        mlflow.keras.log_model(
+            model, 
+            "autoencoder_model",
+            registered_model_name="MechaVybe_Autoencoder"
+        )
         context.log.info(f"Calculated anomaly threshold: {threshold:.6f}")
 
         # Save model to disk for passing to the next step
