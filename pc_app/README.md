@@ -53,8 +53,23 @@ uv sync
 
 ```bash
 # Activate the environment and launch
-uv run python main.py
+uv run main.py
 ```
+
+### Building the Executable (Windows)
+
+To build a standalone `.exe` that can be run on any Windows machine without installing Python:
+
+```bash
+cd pc_app
+
+# The project uses a pre-configured PyInstaller spec file
+uv run pyinstaller --noconfirm MechaVybe.spec
+```
+
+Once finished, the compiled application will be located inside the newly created `dist/MechaVybe/` directory. You can run `MechaVybe.exe` directly from there, or zip the folder to distribute it.
+
+*(Note: Every time you push code to GitHub, a GitHub Actions workflow automatically builds this `.exe` for you and attaches it to the workflow run as an artifact!)*
 
 ### Dependencies
 
