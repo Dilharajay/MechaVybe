@@ -24,11 +24,27 @@ class PlotManager:
             for k in self.accel_data: self.accel_data[k].pop(0)
             for k in self.gyro_data: self.gyro_data[k].pop(0)
 
-    def update_curves(self, curves):
+    def update_curves(self, curves, filter_mgr=None, fs=1000.0):
         if len(self.timestamps) > 0:
-            curves['ax'].setData(self.timestamps, self.accel_data['x'])
-            curves['ay'].setData(self.timestamps, self.accel_data['y'])
-            curves['az'].setData(self.timestamps, self.accel_data['z'])
-            curves['gx'].setData(self.timestamps, self.gyro_data['x'])
-            curves['gy'].setData(self.timestamps, self.gyro_data['y'])
-            curves['gz'].setData(self.timestamps, self.gyro_data['z'])
+            if filter_mgr and filter_mgr.enabled:
+                import numpy as np
+                ax = filter_mgr.apply(np.array(self.accel_data['x']), fs)
+                ay = filter_mgr.apply(np.array(self.accel_data['y']), fs)
+                az = filter_mgr.apply(np.array(self.accel_data['z']), fs)
+                gx = filter_mgr.apply(np.array(self.gyro_data['x']), fs)
+                gy = filter_mgr.apply(np.array(self.gyro_data['y']), fs)
+                gz = filter_mgr.apply(np.array(self.gyro_data['z']), fs)
+            else:
+                ax = self.accel_data['x']
+                ay = self.accel_data['y']
+                az = self.accel_data['z']
+                gx = self.gyro_data['x']
+                gy = self.gyro_data['y']
+                gz = self.gyro_data['z']
+
+            curves['ax'].setData(self.timestamps, ax)
+            curves['ay'].setData(self.timestamps, ay)
+            curves['az'].setData(self.timestamps, az)
+            curves['gx'].setData(self.timestamps, gx)
+            curves['gy'].setData(self.timestamps, gy)
+            curves['gz'].setData(self.timestamps, gz)

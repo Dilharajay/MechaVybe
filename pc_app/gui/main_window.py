@@ -839,7 +839,8 @@ class ImuApp(QMainWindow):
         self.was_connected = current_connected
         self.lbl_disconnects.setText(f"{self.usb_disconnects:,}")
         
-        self.plot_mgr.update_curves(self.curves)
+        fs = float(self.rate_combo.currentText()) if self.rate_combo.currentText() else 1000.0
+        self.plot_mgr.update_curves(self.curves, filter_mgr=self.filter_mgr, fs=fs)
 
     def update_fft_plot(self):
         if not self.serial_mgr.is_connected() or not self.fft_mgr.is_full:
