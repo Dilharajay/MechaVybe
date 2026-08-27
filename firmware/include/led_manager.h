@@ -20,6 +20,7 @@ public:
     void setWifiConnecting();
     void setWifiConnected();
     void setWifiError();
+    void setMqttError();
     void setOtaUpdating();
     void setPcConnected();
     void setInferenceHealthy();

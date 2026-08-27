@@ -833,6 +833,13 @@ void loop()
             int predicted_class = prediction >= Config::PREDICTION_THRESHOLD ? 1 : 0;
             
             // Update LED Status
+            bool mqtt_ok = mqttClient.connected();
+            if (!mqtt_ok) {
+                // Quick Orange flash to visually indicate MQTT is down during prediction
+                statusLed.setMqttError();
+                delay(50);
+            }
+            
             if (predicted_class == 1) {
                 statusLed.setInferenceAnomaly(); // Red
             } else {
@@ -840,7 +847,7 @@ void loop()
             }
 
             // Publish via MQTT
-            if (mqttClient.connected()) {
+            if (mqtt_ok) {
                 String payload = "{\"status\": \"" + String(predicted_class == 1 ? "anomaly" : "healthy") + "\", \"score\": " + String(prediction) + "}";
                 String topic = nvs.getMqttTopic();
                 if (topic == "") topic = Config::MQTT_TOPIC;
@@ -852,7 +859,9 @@ void loop()
 
             if (cli_logs_enabled) {
                 // Print directly instead of using Logger::info so the PC app doesn't try to parse it as JSON
-                Serial.printf(">>> [DIAGNOSTIC] Score: %.4f | Status: %s\n", prediction, predicted_class == 1 ? "ANOMALY" : "HEALTHY");
+                Serial.printf(">>> [%s] Score: %.4f | Status: %s\n", 
+                    mqtt_ok ? "MQTT ONLINE" : "MQTT OFFLINE",
+                    prediction, predicted_class == 1 ? "ANOMALY" : "HEALTHY");
             }
         }
     }

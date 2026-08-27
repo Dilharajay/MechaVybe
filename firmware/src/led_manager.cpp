@@ -7,7 +7,7 @@ LedManager::LedManager()
 
 void LedManager::begin() {
     pixels.begin();
-    pixels.setBrightness(50); // Set to a reasonable default brightness (0-255)
+    pixels.setBrightness(Config::LED_BRIGHTNESS); // Set to a reasonable default brightness (0-255)
     turnOff();
 }
 
@@ -31,6 +31,11 @@ void LedManager::setWifiConnected() {
 void LedManager::setWifiError() {
     // Red for error
     setColor(255, 0, 0);
+}
+
+void LedManager::setMqttError() {
+    // Orange for MQTT offline/error
+    setColor(255, 128, 0); 
 }
 
 void LedManager::setOtaUpdating() {

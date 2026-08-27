@@ -248,14 +248,15 @@ The ESP32 firmware includes a physical button interface and LED diagnostics:
 * **Mode Switching:** Long-press the **BOOT Button (GPIO 0) for 1.5s** to toggle between **Data Collection Mode** (streaming to PC) and **Inference Mode** (running TinyML locally and publishing to MQTT).
 
 **LED Indicator Patterns:**
-* 🟨 **Yellow:** Booting up / Connecting to Wi-Fi.
+* 🟨 **Yellow:** Connecting to Wi-Fi / Trying to Reconnect.
 * 🟦 **Blue:** OTA Update in progress.
 * 🩵 **Cyan:** Data Collection Mode (Active).
-* 🟪 **Magenta:** Mode switching (appears during long-press).
-* 🟩 **Green:** Inference Mode (Healthy).
+* 🟪 **Magenta:** Mode switching.
+* 🟩 **Green:** Inference Mode (Healthy / No Anomaly).
 * 🟥 **Red:** Inference Mode (Anomaly Detected).
+* 🟧 **Orange (Flashing):** Inference Mode (MQTT Offline).
 
-*In Inference Mode, the status is published via MQTT to `broker.hivemq.com` under the topic `mechavybe/status`.*
+*In Inference Mode, the status is published via MQTT to `broker.hivemq.com` under the topic `mechavybe/status`. If MQTT is unavailable, the device will flash Orange rapidly before each prediction (which will still evaluate locally) and output `[MQTT OFFLINE]` to the Serial Diagnostic CLI.*
 
 **ESP32 Serial Diagnostic CLI:**
 You can connect a serial terminal (like PuTTY or PlatformIO Monitor) at 921600 baud directly to the ESP32 to interact with it via a built-in command-line interface. 
