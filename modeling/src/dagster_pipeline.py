@@ -86,23 +86,27 @@ def trained_autoencoder(context: AssetExecutionContext, config: TrainConfig, tra
         
         # Save model to mlflow
         mlflow.keras.log_model(model, "autoencoder_model")
-        
         context.log.info(f"Calculated anomaly threshold: {threshold:.6f}")
 
+        # Save model to disk for passing to the next step
+        model_path = os.path.join(config.mlflow_experiment_name, "keras_model.keras")
+        os.makedirs(config.mlflow_experiment_name, exist_ok=True)
+        model.save(model_path)
         
     return {
-        "model": model,
+        "model_path": model_path,
         "threshold": threshold
     }
 
 @asset
 def exported_model(context: AssetExecutionContext, config: ExportConfig, training_features: dict, trained_autoencoder: dict) -> MaterializeResult:
-    model = trained_autoencoder["model"]
+    model = tf.keras.models.load_model(trained_autoencoder["model_path"])
     threshold = trained_autoencoder["threshold"]
     X_train_scaled = training_features["X_train_scaled"]
     feature_max = training_features["feature_max"]
     
     export_tflite_and_header(model, X_train_scaled, feature_max, threshold, config.output_dir)
+
     
     context.log.info(f"Exported model to {config.output_dir}")
     return MaterializeResult(
