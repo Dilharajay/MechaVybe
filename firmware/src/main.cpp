@@ -172,6 +172,17 @@ void processSerial() {
                 nvs.setAccelScale(imu.scaleAx, imu.scaleAy, imu.scaleAz);
                 Logger::info("Manual calibration applied and saved!");
             }
+        } else if (cmd.startsWith("SET:MQTT:")) {
+            // SET:MQTT:<server>,<port>,<topic>
+            int ptr1 = cmd.indexOf(',', 9);
+            int ptr2 = cmd.indexOf(',', ptr1 + 1);
+            if (ptr1 > 0 && ptr2 > 0) {
+                String server = cmd.substring(9, ptr1);
+                int port = cmd.substring(ptr1 + 1, ptr2).toInt();
+                String topic = cmd.substring(ptr2 + 1);
+                nvs.setMqttConfig(server, port, topic);
+                Logger::info("MQTT config applied and saved!");
+            }
         } else if (cmd == "GET:INFO") {
             // Send JSON info
             String info = "INFO:{\"id\":\"" + nvs.getDeviceId() + "\"," +
@@ -181,6 +192,9 @@ void processSerial() {
                           "\"rate\":" + String(nvs.getSampleRate()) + "," +
                           "\"accel\":" + String(nvs.getAccelRange()) + "," +
                           "\"gyro\":" + String(nvs.getGyroRange()) + "," +
+                          "\"mqtt_server\":\"" + nvs.getMqttServer() + "\"," +
+                          "\"mqtt_port\":" + String(nvs.getMqttPort()) + "," +
+                          "\"mqtt_topic\":\"" + nvs.getMqttTopic() + "\"," +
                           "\"calib_ax\":" + String(imu.offsetAx) + "," +
                           "\"calib_ay\":" + String(imu.offsetAy) + "," +
                           "\"calib_az\":" + String(imu.offsetAz) + "," +
@@ -214,8 +228,7 @@ void setup() {
     }
 
     pinMode(Config::BUTTON_PIN, INPUT_PULLUP);
-    mqttClient.setServer(Config::MQTT_SERVER, Config::MQTT_PORT);
-
+    
     // Initialize Status LED
     statusLed.begin();
     statusLed.setWifiConnecting(); // Yellow during boot/connect
@@ -229,6 +242,13 @@ void setup() {
         ssid = Config::WIFI_SSID;
         pwd = Config::WIFI_PASSWORD;
     }
+    
+    String mqttServer = nvs.getMqttServer();
+    if (mqttServer == "") mqttServer = Config::MQTT_SERVER;
+    int mqttPort = nvs.getMqttPort();
+    if (mqttPort == 0) mqttPort = Config::MQTT_PORT;
+    
+    mqttClient.setServer(mqttServer.c_str(), mqttPort);
     
     // Initialize OTA with status LED
     ota.begin(ssid.c_str(), pwd.c_str(), Config::OTA_HOSTNAME, &statusLed);
@@ -732,7 +752,9 @@ void loop()
             // Publish via MQTT
             if (mqttClient.connected()) {
                 String payload = "{\"status\": \"" + String(predicted_class == 1 ? "anomaly" : "healthy") + "\", \"score\": " + String(prediction) + "}";
-                mqttClient.publish(Config::MQTT_TOPIC, payload.c_str());
+                String topic = nvs.getMqttTopic();
+                if (topic == "") topic = Config::MQTT_TOPIC;
+                mqttClient.publish(topic.c_str(), payload.c_str());
             }
 
             Logger::info("Prediction: %.4f, Class: %d", prediction, predicted_class);

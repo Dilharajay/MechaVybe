@@ -93,4 +93,24 @@ void NvsManager::setAccelScale(float sx, float sy, float sz) {
     prefs.putFloat("scl_ax", sx);
     prefs.putFloat("scl_ay", sy);
     prefs.putFloat("scl_az", sz);
+    Logger::info("Accel scale saved to NVS.");
+}
+
+String NvsManager::getMqttServer() {
+    return prefs.getString("mqtt_server", "");
+}
+
+int NvsManager::getMqttPort() {
+    return prefs.getInt("mqtt_port", 0);
+}
+
+String NvsManager::getMqttTopic() {
+    return prefs.getString("mqtt_topic", "");
+}
+
+void NvsManager::setMqttConfig(const String& server, int port, const String& topic) {
+    prefs.putString("mqtt_server", server);
+    prefs.putInt("mqtt_port", port);
+    prefs.putString("mqtt_topic", topic);
+    Logger::info("MQTT config saved to NVS.");
 }

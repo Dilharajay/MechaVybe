@@ -31,4 +31,10 @@ public:
     // Accelerometer Scales
     void getAccelScale(float& sx, float& sy, float& sz);
     void setAccelScale(float sx, float sy, float sz);
+
+    // MQTT Configuration
+    String getMqttServer();
+    int getMqttPort();
+    String getMqttTopic();
+    void setMqttConfig(const String& server, int port, const String& topic);
 };

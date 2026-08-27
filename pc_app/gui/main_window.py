@@ -227,6 +227,24 @@ class ImuApp(QMainWindow):
         wifi_group.setLayout(wifi_form)
         left_col.addWidget(wifi_group)
         
+        # 4b. MQTT Configuration
+        mqtt_group = QGroupBox("MQTT Configuration (NVS)")
+        mqtt_form = QFormLayout()
+        self.mqtt_server_input = QLineEdit("broker.hivemq.com")
+        self.mqtt_port_input = QSpinBox()
+        self.mqtt_port_input.setRange(1, 65535)
+        self.mqtt_port_input.setValue(1883)
+        self.mqtt_topic_input = QLineEdit("mechavybe/status")
+        self.send_mqtt_btn = QPushButton("Apply MQTT Config")
+        self.send_mqtt_btn.clicked.connect(self.send_mqtt_config)
+        
+        mqtt_form.addRow("Broker:", self.mqtt_server_input)
+        mqtt_form.addRow("Port:", self.mqtt_port_input)
+        mqtt_form.addRow("Topic:", self.mqtt_topic_input)
+        mqtt_form.addRow("", self.send_mqtt_btn)
+        mqtt_group.setLayout(mqtt_form)
+        left_col.addWidget(mqtt_group)
+        
         # 5. Recording Metadata
         meta_group = QGroupBox("Dataset & Recording Metadata")
         meta_layout = QVBoxLayout()
@@ -655,6 +673,14 @@ class ImuApp(QMainWindow):
             else:
                 QMessageBox.warning(self, "Warning", "Not connected!")
 
+    def send_mqtt_config(self):
+        server = self.mqtt_server_input.text().strip()
+        port = self.mqtt_port_input.value()
+        topic = self.mqtt_topic_input.text().strip()
+        if server and topic:
+            self.send_cmd(f"SET:MQTT:{server},{port},{topic}")
+            QMessageBox.information(self, "Sent", "MQTT configuration sent. The ESP32 will save it to NVS.")
+
     def toggle_recording(self):
         if self.logger.is_recording:
             self.stop_recording_sequence()
@@ -843,6 +869,10 @@ class ImuApp(QMainWindow):
                         gyro = str(data.get("gyro", "500"))
                         idx = self.gyro_combo.findText(gyro)
                         if idx >= 0: self.gyro_combo.setCurrentIndex(idx)
+                        
+                        self.mqtt_server_input.setText(data.get("mqtt_server", "broker.hivemq.com"))
+                        self.mqtt_port_input.setValue(data.get("mqtt_port", 1883))
+                        self.mqtt_topic_input.setText(data.get("mqtt_topic", "mechavybe/status"))
                         
                         self.cal_ox.setText(str(data.get("calib_ax", 0.0)))
                         self.cal_oy.setText(str(data.get("calib_ay", 0.0)))
