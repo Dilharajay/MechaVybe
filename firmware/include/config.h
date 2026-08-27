@@ -7,13 +7,13 @@ namespace Config {
     // ==========================================
     // Wi-Fi Configuration
     // ==========================================
-    constexpr char WIFI_SSID[]     = "SLT-4G-87D7";
-    constexpr char WIFI_PASSWORD[] = "HJBT5JD1NY0";
+    constexpr char WIFI_SSID[]     = "";
+    constexpr char WIFI_PASSWORD[] = "";
 
     // ==========================================
     // OTA Configuration
     // ==========================================
-    constexpr char OTA_HOSTNAME[]  = "esp32-s3";
+    // OTA hostname is now dynamically generated in main.cpp based on the Device ID
 
     // ==========================================
     // Hardware / Serial Configuration
@@ -70,7 +70,7 @@ namespace Config {
     // ==========================================
     // MQTT Configuration
     // ==========================================
-    constexpr char MQTT_SERVER[]   = "broker.hivemq.com";
+    constexpr char MQTT_SERVER[]   = "";
     constexpr int  MQTT_PORT       = 1883;
-    constexpr char MQTT_TOPIC[]    = "mechavybe/status";
+    constexpr char MQTT_TOPIC[]    = "";
 }

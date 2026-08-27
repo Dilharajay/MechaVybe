@@ -325,7 +325,8 @@ void setup() {
     mqttClient.setServer(currentMqttServer.c_str(), mqttPort);
     
     // Initialize OTA with status LED
-    ota.begin(ssid.c_str(), pwd.c_str(), Config::OTA_HOSTNAME, &statusLed);
+    String hostname = "mechavybe-" + nvs.getDeviceId();
+    ota.begin(ssid.c_str(), pwd.c_str(), hostname.c_str(), &statusLed);
 
     // Initialize IMU and load NVS configs
     imu.begin(nvs.getSensorType());
@@ -857,7 +858,9 @@ void loop()
                     String payload = "{\"id\": \"" + nvs.getDeviceId() + "\", \"status\": \"anomaly\", \"score\": " + String(prediction) + "}";
                     String topic = nvs.getMqttTopic();
                     if (topic == "") topic = Config::MQTT_TOPIC;
-                    mqttClient.publish(topic.c_str(), payload.c_str());
+                    if (topic != "") {
+                        mqttClient.publish(topic.c_str(), payload.c_str());
+                    }
                 }
             }
 
