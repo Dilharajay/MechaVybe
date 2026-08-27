@@ -12,7 +12,7 @@ class SerialManager:
     def get_ports():
         return [port.device for port in serial.tools.list_ports.comports()]
 
-    def connect(self, port_name, baud_rate=115200):
+    def connect(self, port_name, baud_rate=921600):
         self.port = serial.Serial(port_name, baud_rate, timeout=0.01)
         self.port.reset_input_buffer()
         self.byte_buffer = bytearray()

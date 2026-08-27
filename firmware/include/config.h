@@ -18,7 +18,7 @@ namespace Config {
     // ==========================================
     // Hardware / Serial Configuration
     // ==========================================
-    constexpr uint32_t SERIAL_BAUD_RATE = 115200;
+    constexpr uint32_t SERIAL_BAUD_RATE = 921600;
     
     // 0=DEBUG, 1=INFO, 2=WARN, 3=ERROR, 4=NONE
     constexpr int DEFAULT_LOG_LEVEL = 0;
