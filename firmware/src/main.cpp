@@ -803,8 +803,9 @@ void loop()
                 static uint32_t last_mqtt_try = 0;
                 if (millis() - last_mqtt_try > 5000) {
                     last_mqtt_try = millis();
-                    if (mqttClient.connect(Config::OTA_HOSTNAME)) {
-                        Logger::info("MQTT Connected to %s", Config::MQTT_SERVER);
+                    String clientId = "mechavybe-" + nvs.getDeviceId();
+                    if (mqttClient.connect(clientId.c_str())) {
+                        Logger::info("MQTT Connected to %s as %s", currentMqttServer.c_str(), clientId.c_str());
                     } else {
                         Logger::warn("MQTT Connection Failed.");
                     }
