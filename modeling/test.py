@@ -1,6 +1,8 @@
-from train import model_path
+from pathlib import Path
 import tensorflow as tf
 import numpy as np
+
+model_path = Path("model/anomaly_model.tflite")
 
 # ---------------------------------------------------------
 # 9. Test INT8 model with TFLite interpreter
