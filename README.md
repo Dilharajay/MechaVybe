@@ -1,4 +1,8 @@
-# MechaVybe: End-to-End Machine Vibration Sensing and Anomaly Detection
+# MECHAVYBE: End-to-End Machine Vibration Sensing and Anomaly Detection
+
+<p align="center">
+  <img src="pc_app/gui/assets/logo.png" alt="MECHAVYBE Logo" width="300"/>
+</p>
 
 ## 1. Project Overview
 

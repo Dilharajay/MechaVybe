@@ -2,8 +2,8 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QLineEdit, QPushButton, QComboBox, QMessageBox,
                              QTabWidget, QFormLayout, QGroupBox, QTextEdit, QSpinBox,
                              QDoubleSpinBox, QCheckBox, QScrollArea)
-from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QTransform
+from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtGui import QTransform, QIcon, QPixmap
 import pyqtgraph as pg
 import numpy as np
 import time
@@ -19,7 +19,9 @@ from core.filter_manager import FilterManager
 class ImuApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Data Acquisition System")
+        self.setWindowTitle("MECHAVYBE - Data Acquisition System")
+        icon_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+        self.setWindowIcon(QIcon(icon_path))
         self.resize(1000, 800)
         
         self.serial_mgr = SerialManager()
@@ -76,6 +78,17 @@ class ImuApp(QMainWindow):
         left_col_widget = QWidget()
         left_col = QVBoxLayout()
         left_col_widget.setLayout(left_col)
+        
+        # 0. Logo
+        logo_label = QLabel()
+        logo_path = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+        logo_pixmap = QPixmap(logo_path)
+        if not logo_pixmap.isNull():
+            # Scale logo width to fit the column width decently, preserving aspect ratio
+            logo_pixmap = logo_pixmap.scaledToWidth(250, Qt.TransformationMode.SmoothTransformation)
+            logo_label.setPixmap(logo_pixmap)
+            logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            left_col.addWidget(logo_label)
         
         # 1. Connection Panel
         conn_group = QGroupBox("Connection & Logging")
