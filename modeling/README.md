@@ -483,11 +483,15 @@ uv run mlflow ui --backend-store-uri sqlite:///mlruns.db
 Visit `http://localhost:5000` to track parameters, reconstruction loss, and anomaly thresholds across different runs.
 
 **Step 4 — Deploy to firmware**:
+The Dagster pipeline now includes a `deployed_firmware` asset that automatically copies the generated `model.h` into the firmware folder and flashes the ESP32 wirelessly over OTA (using PlatformIO and `uvx`). 
+
+Make sure your ESP32 is powered on and connected to the same Wi-Fi network as your PC, then just click **"Materialize All"** in Dagster and it will handle the end-to-end training and deployment automatically!
+
+*(If you want to manually build it instead:)*
 ```powershell
 copy model\model.h ..\firmware\include\model.h
 cd ..\firmware
-idf.py build
-idf.py flash
+uvx platformio run -t upload
 ```
 
 ---

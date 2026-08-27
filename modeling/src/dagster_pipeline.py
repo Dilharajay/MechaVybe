@@ -139,6 +139,44 @@ def exported_model(context: AssetExecutionContext, config: ExportConfig, trainin
         }
     )
 
+import subprocess
+
+@asset
+def deployed_firmware(context: AssetExecutionContext, exported_model: MaterializeResult) -> MaterializeResult:
+    import shutil
+    
+    # 1. Copy model.h to firmware
+    src = os.path.join("model", "model.h")
+    dest = os.path.join("..", "firmware", "include", "model.h")
+    shutil.copy2(src, dest)
+    context.log.info(f"Copied {src} to {dest}")
+    
+    # 2. Run PlatformIO OTA upload
+    context.log.info("Starting PlatformIO OTA Upload...")
+    try:
+        # Run using uvx so the user doesn't even need pio installed globally!
+        # It will use the esp32-s3-ota environment we just defined
+        result = subprocess.run(
+            ["uvx", "platformio", "run", "-d", "../firmware", "-e", "esp32-s3-ota", "-t", "upload"],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        context.log.info("OTA Upload Successful!")
+        context.log.info(result.stdout)
+    except subprocess.CalledProcessError as e:
+        context.log.error("OTA Upload Failed!")
+        context.log.error(e.stdout)
+        context.log.error(e.stderr)
+        raise e
+
+    return MaterializeResult(
+        metadata={
+            "status": "success",
+            "environment": "esp32-s3-ota"
+        }
+    )
+
 defs = Definitions(
-    assets=[raw_signal, training_features, trained_autoencoder, exported_model]
+    assets=[raw_signal, training_features, trained_autoencoder, exported_model, deployed_firmware]
 )
