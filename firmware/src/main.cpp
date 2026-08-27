@@ -105,6 +105,7 @@ uint32_t buttonPressTime = 0;
 bool cli_logs_enabled = false;
 float last_prediction_score = 0.0;
 int last_predicted_class = 0;
+String currentMqttServer;
 
 void processSerial() {
     if (Serial.available()) {
@@ -248,6 +249,8 @@ void processSerial() {
                 int port = cmd.substring(ptr1 + 1, ptr2).toInt();
                 String topic = cmd.substring(ptr2 + 1);
                 nvs.setMqttConfig(server, port, topic);
+                currentMqttServer = server;
+                mqttClient.setServer(currentMqttServer.c_str(), port);
                 Logger::info("MQTT config applied and saved!");
             }
         } else if (cmd == "GET:INFO") {
@@ -310,12 +313,12 @@ void setup() {
         pwd = Config::WIFI_PASSWORD;
     }
     
-    String mqttServer = nvs.getMqttServer();
-    if (mqttServer == "") mqttServer = Config::MQTT_SERVER;
+    currentMqttServer = nvs.getMqttServer();
+    if (currentMqttServer == "") currentMqttServer = Config::MQTT_SERVER;
     int mqttPort = nvs.getMqttPort();
     if (mqttPort == 0) mqttPort = Config::MQTT_PORT;
     
-    mqttClient.setServer(mqttServer.c_str(), mqttPort);
+    mqttClient.setServer(currentMqttServer.c_str(), mqttPort);
     
     // Initialize OTA with status LED
     ota.begin(ssid.c_str(), pwd.c_str(), Config::OTA_HOSTNAME, &statusLed);
