@@ -20,20 +20,22 @@ void OtaManager::begin(const char* ssid, const char* password, const char* hostn
     WiFi.begin(ssid, password);
     Logger::info("Connecting to WiFi");
     
-    while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-        if (led) led->setWifiError();
-        Logger::info("Connection Failed! Rebooting...");
-        delay(Config::ERROR_DELAY_MS);
-        ESP.restart();
+    // Wait for connection, but don't block forever
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 20) {
+        delay(500);
+        attempts++;
     }
     
-    if (led) {
-        led->setWifiConnected();
+    if (WiFi.status() == WL_CONNECTED) {
+        if (led) led->setWifiConnected();
+        Logger::info("");
+        Logger::info("Connected to %s", ssid);
+        Logger::info("IP address: %s", WiFi.localIP().toString().c_str());
+    } else {
+        if (led) led->turnOff();
+        Logger::warn("WiFi Connection Failed! Proceeding offline.");
     }
-
-    Logger::info("");
-    Logger::info("Connected to %s", ssid);
-    Logger::info("IP address: %s", WiFi.localIP().toString().c_str());
 
     // Setup OTA
     ArduinoOTA.setHostname(hostname);

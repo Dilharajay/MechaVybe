@@ -187,7 +187,9 @@ void processSerial() {
             if (!predictionMode) {
                 if (millis() - last_pc_msg < 3000) statusLed.setPcConnected();
                 else if (WiFi.status() == WL_CONNECTED) statusLed.setWifiConnected();
-                else statusLed.setWifiConnecting();
+                else statusLed.turnOff();
+            } else {
+                statusLed.setModeSwitching(); // Will be overwritten by inference loop
             }
         } else if (cmd.startsWith("SET:RATE:")) {
             int rate = cmd.substring(9).toInt();
@@ -654,7 +656,7 @@ void loop()
                 } else if (WiFi.status() == WL_CONNECTED) {
                     statusLed.setWifiConnected();
                 } else {
-                    statusLed.setWifiConnecting();
+                    statusLed.turnOff();
                 }
             }
         }
@@ -672,7 +674,11 @@ void loop()
             statusLed.setPcConnected();
             Logger::info("PC Connected!");
         } else if (!predictionMode) {
-            statusLed.setWifiConnected(); // Fallback to Wi-Fi state
+            if (WiFi.status() == WL_CONNECTED) {
+                statusLed.setWifiConnected();
+            } else {
+                statusLed.turnOff();
+            }
             Logger::info("PC Disconnected.");
         }
     }
@@ -788,8 +794,14 @@ void loop()
     if (predictionMode) {
         if (WiFi.status() == WL_CONNECTED) {
             if (!mqttClient.connected()) {
-                if (mqttClient.connect(Config::OTA_HOSTNAME)) {
-                    Logger::info("MQTT Connected to %s", Config::MQTT_SERVER);
+                static uint32_t last_mqtt_try = 0;
+                if (millis() - last_mqtt_try > 5000) {
+                    last_mqtt_try = millis();
+                    if (mqttClient.connect(Config::OTA_HOSTNAME)) {
+                        Logger::info("MQTT Connected to %s", Config::MQTT_SERVER);
+                    } else {
+                        Logger::warn("MQTT Connection Failed.");
+                    }
                 }
             }
             if (mqttClient.connected()) {
